@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "budget-planner",
-    "slug": "budget-planner",
+    "name": "BudgetGOAT",
+    "slug": "budgetgoat",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,17 +13,26 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.budgetgoat.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.budgetgoat.app",
+      "versionCode": 1
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "plugins": [
+      "expo-secure-store",
+      "expo-font"
+    ]
   }
 }

@@ -1,16 +1,12 @@
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function App() {
+export default function AccountScreen() {
   return (
-    <>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
-        <Text style={styles.title}>BudgetGOAT</Text>
-        <Text style={styles.subtitle}>Basic test version - No navigation</Text>
-      </View>
-    </>
+    <View style={styles.container}>
+      <Text style={styles.title}>Account Screen</Text>
+      <Text style={styles.subtitle}>Basic test version - No dependencies</Text>
+    </View>
   );
 }
 
@@ -32,3 +28,5 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
 });
+
+
