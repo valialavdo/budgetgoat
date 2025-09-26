@@ -6,13 +6,15 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   ScrollView, 
-  Modal,
   Alert,
   Switch
 } from 'react-native';
-import { Plus, X, Calendar, Info, Clock } from 'phosphor-react-native';
+import { Plus, Calendar, Info, Clock } from 'phosphor-react-native';
 import { Colors, Spacing, Radius, Typography, Layout, Shadows } from '../theme';
 import { Category, CategoryType } from '../types';
+import BaseBottomSheet from './BaseBottomSheet';
+import ActionButton from './ActionButton';
+import SegmentedControl from './SegmentedControl';
 
 interface CategoryFormProps {
   visible: boolean;
@@ -57,7 +59,7 @@ export default function CategoryForm({
   useEffect(() => {
     if (initialData) {
       setName(initialData.name || '');
-      setAmount(initialData.defaultAmount?.toString() || '');
+      setAmount(initialData.defaultAmount ? String(initialData.defaultAmount) : '');
       setDescription('');
       setSelectedType(initialData.type || 'extra');
       setIsRecurring(initialData.recurrence?.isRecurring || false);
@@ -125,29 +127,15 @@ export default function CategoryForm({
   };
 
   const renderTypeTabs = () => (
-    <View style={styles.tabContainer}>
-      {CATEGORY_TYPES.map((type) => (
-        <TouchableOpacity
-          key={type.type}
-          style={[
-            styles.tab,
-            selectedType === type.type && { backgroundColor: type.color }
-          ]}
-          onPress={() => setSelectedType(type.type)}
-          accessibilityLabel={`Select ${type.label} category type`}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: selectedType === type.type }}
-        >
-          <Text style={styles.tabIcon}>{type.icon}</Text>
-          <Text style={[
-            styles.tabLabel,
-            selectedType === type.type && styles.tabLabelSelected
-          ]}>
-            {type.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <SegmentedControl
+      options={CATEGORY_TYPES.map((type) => ({
+        value: type.type,
+        label: type.label,
+        icon: <Text style={styles.tabIcon}>{type.icon}</Text>
+      }))}
+      selectedValue={selectedType}
+      onValueChange={(value) => setSelectedType(value as CategoryType)}
+    />
   );
 
   const renderMonthSelector = () => (
@@ -189,13 +177,13 @@ export default function CategoryForm({
           accessibilityLabel="Open calendar picker"
           accessibilityRole="button"
         >
-          <Calendar weight="regular" size={20} color={Colors.trustBlue} />
+          <Calendar weight="light" size={20} color={Colors.trustBlue} />
           <Text style={styles.calendarButtonText}>
             {selectedMonth === 0 ? 'Current Month' : 
              selectedMonth === 1 ? 'Next Month' : 
              `${selectedMonth} months ahead`}
           </Text>
-          <Clock weight="regular" size={16} color={Colors.textMuted} />
+          <Clock weight="light" size={16} color={Colors.textMuted} />
         </TouchableOpacity>
       </View>
     </View>
@@ -243,28 +231,16 @@ export default function CategoryForm({
   );
 
   return (
-    <Modal
+    <BaseBottomSheet
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onClose={onClose}
+      title={isEditing ? 'Edit Category' : 'New Category'}
+      showActionButtons={true}
+      actionButtonText="Save Category"
+      onActionButtonPress={handleSave}
+      cancelButtonText="Cancel"
+      onCancelButtonPress={onClose}
     >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isEditing ? 'Edit Category' : 'New Category'}
-          </Text>
-          <TouchableOpacity 
-            onPress={() => setShowAIRecommendations(!showAIRecommendations)}
-            style={styles.infoButton}
-          >
-            <Info size={20} color={Colors.trustBlue} />
-          </TouchableOpacity>
-        </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* AI Recommendations */}
@@ -347,22 +323,7 @@ export default function CategoryForm({
             </View>
           </View>
         </ScrollView>
-
-        {/* Save Button */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            accessibilityLabel="Save category"
-            accessibilityRole="button"
-          >
-            <Text style={styles.saveButtonText}>
-              {isEditing ? 'Update Category' : 'Create Category'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+    </BaseBottomSheet>
   );
 }
 
@@ -456,7 +417,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.h4,
     color: Colors.text,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sectionTitleToContent,
   },
   quickMonthsContainer: {
     marginBottom: Spacing.md,
@@ -531,7 +492,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
-    ...Typography.body,
+    ...Typography.bodyRegular,
     color: Colors.text,
   },
   inputError: {
@@ -584,7 +545,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   toggleLabel: {
-    ...Typography.body,
+    ...Typography.bodyRegular,
     color: Colors.text,
   },
   footer: {

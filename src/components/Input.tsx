@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    ...Typography.body,
+    ...Typography.bodyRegular,
     color: Colors.text,
     minHeight: 44,
   },

@@ -1,98 +1,45 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
-import { X, Info } from 'phosphor-react-native';
-import { Colors, Spacing, Radius, Typography, Layout, Shadows } from '../theme';
+import { Text, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import { Info } from 'phosphor-react-native';
+import BaseBottomSheet from './BaseBottomSheet';
 
 interface InfoBottomSheetProps {
-  visible: boolean;
+  isVisible: boolean;
   onClose: () => void;
   title: string;
-  content: React.ReactNode;
-  icon?: React.ReactNode;
+  content: string;
 }
 
 export default function InfoBottomSheet({ 
-  visible, 
+  isVisible, 
   onClose, 
-  title, 
-  content,
-  icon = <Info weight="regular" size={24} color={Colors.trustBlue} />
+  title,
+  content
 }: InfoBottomSheetProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
+  
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+    <BaseBottomSheet
+      visible={isVisible}
+      onClose={onClose}
+      title={title}
+      showActionButtons={true}
+      actionButtonText="Close"
+      onActionButtonPress={onClose}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} />
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              {icon}
-              <Text style={styles.title}>{title}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color={Colors.text} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Content */}
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {content}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+      <Text style={styles.contentText}>{content}</Text>
+    </BaseBottomSheet>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-    paddingTop: 48, // 48px from top
-  },
-  backdrop: {
-    flex: 1,
-  },
-  container: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: Radius.lg,
-    borderTopRightRadius: Radius.lg,
-    maxHeight: '85%', // Increased from 80% to 85%
-    minHeight: '60%', // Added minimum height
-    ...Shadows.large,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  title: {
-    ...Typography.h4,
-    color: Colors.text,
-    marginLeft: Spacing.sm,
-  },
-  closeButton: {
-    width: Layout.minTapArea,
-    height: Layout.minTapArea,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    padding: Spacing.lg,
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    contentText: {
+      ...theme.typography.bodyLarge,
+      color: theme.colors.text,
+      lineHeight: 24,
+    },
+  });
+}

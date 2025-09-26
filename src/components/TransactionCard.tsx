@@ -1,160 +1,147 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { TrendUp, TrendDown, Repeat, PencilSimple } from 'phosphor-react-native';
-import { Colors, Typography, Spacing, Radius } from '../theme';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Colors, Spacing, Radius, Typography } from '../theme';
+import { Plus, Minus, Clock } from 'phosphor-react-native';
+import LabelPill from './LabelPill';
 
 interface TransactionCardProps {
   transaction: {
     id: string;
-    note: string;
+    title: string;
+    subtitle: string;
     amount: number;
-    type: 'income' | 'expense';
-    pocketName: string;
-    isRecurring: boolean;
+    originalPrice?: number;
+    percentReturn?: number;
+    type: 'income' | 'expense' | 'investment';
+    category: string;
+    date: string;
+    icon?: string;
+    isRecurring?: boolean;
   };
-  onEdit: () => void;
-  formatAmount: (amount: number, type: 'income' | 'expense') => string;
+  onPress?: () => void;
 }
 
-export default function TransactionCard({ transaction, onEdit, formatAmount }: TransactionCardProps) {
+export default function TransactionCard({ transaction, onPress }: TransactionCardProps) {
+  const isPositive = transaction.amount > 0;
+  
+  const renderLabels = () => {
+    const labels = [];
+    
+    // Add type label (expenses/income)
+    if (transaction.type === 'income') {
+      labels.push(
+        <LabelPill
+          key="income"
+          icon={<Plus />}
+          text="Income"
+          backgroundColor={Colors.income + '15'}
+          textColor={Colors.income}
+        />
+      );
+    } else {
+      labels.push(
+        <LabelPill
+          key="expense"
+          icon={<Minus />}
+          text="Expenses"
+          backgroundColor={Colors.expense + '15'}
+          textColor={Colors.expense}
+        />
+      );
+    }
+    
+    // Add recurring label if applicable
+    if (transaction.isRecurring) {
+      labels.push(
+        <LabelPill
+          key="recurring"
+          icon={<Clock />}
+          text="Recurring"
+          backgroundColor={Colors.trustBlue + '15'}
+          textColor={Colors.trustBlue}
+        />
+      );
+    }
+    
+    return (
+      <View style={styles.labelsContainer}>
+        {labels}
+      </View>
+    );
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `€${Math.abs(amount).toLocaleString()}`;
+  };
+
   return (
-    <View style={styles.transactionRow}>
-      {/* Left side: Icon and transaction info */}
-      <View style={styles.transactionLeft}>
-        {/* Transaction icon - circular like portfolio logos */}
-        <View style={[
-          styles.transactionIcon,
-          { backgroundColor: transaction.type === 'income' ? Colors.income + '20' : Colors.expense + '20' }
-        ]}>
-          {transaction.type === 'income' ? (
-            <TrendUp weight="regular" size={20} color={Colors.income} />
-          ) : (
-            <TrendDown weight="regular" size={20} color={Colors.expense} />
-          )}
-        </View>
-        
-        {/* Transaction details - company name style */}
-        <View style={styles.transactionDetails}>
-          <Text style={styles.transactionNote} numberOfLines={1}>
-            {transaction.note}
-          </Text>
-          <Text style={styles.transactionPocket} numberOfLines={1}>
-            {transaction.pocketName}
-          </Text>
-        </View>
-      </View>
-      
-      {/* Right side: Amount and indicators */}
-      <View style={styles.transactionRight}>
-        {/* Main amount - like current value */}
-        <Text style={styles.amountText}>
-          {formatAmount(transaction.amount, transaction.type)}
-        </Text>
-        
-        {/* Recurring indicator - like percentage pill */}
-        {transaction.isRecurring && (
-          <View style={styles.recurringPill}>
-            <Repeat weight="regular" size={16} color={Colors.trustBlue} />
-            <Text style={styles.recurringText}>Recurring</Text>
+    <TouchableOpacity onPress={onPress} style={styles.container}>
+      {/* Main Transaction Info */}
+      <View style={styles.mainContent}>
+        <View style={styles.leftSection}>
+          <View style={styles.textContent}>
+            <Text style={styles.title} numberOfLines={1}>
+              {transaction.title}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {transaction.subtitle}
+            </Text>
+            {renderLabels()}
           </View>
-        )}
+        </View>
         
-        {/* Edit button positioned at bottom-right */}
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={onEdit}
-          activeOpacity={0.7}
-        >
-          <PencilSimple weight="regular" size={28} color={Colors.trustBlue} />
-        </TouchableOpacity>
+        <View style={styles.rightSection}>
+          <Text style={styles.amount}>
+            {isPositive ? '+' : '-'}{formatCurrency(transaction.amount)}
+          </Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  transactionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
-    borderRadius: Radius.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minHeight: 80, // Increased height for better proportions
-  },
-  
-  // Left side: Icon and transaction details
-  transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  transactionIcon: {
-    width: 48, // Larger circular icon like portfolio logos
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.lg, // More spacing between icon and text
-  },
-  transactionDetails: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  transactionNote: {
-    ...Typography.h4,
-    color: Colors.text,
-    fontWeight: '700', // Bold like company names
-    marginBottom: 4,
-    fontSize: 16,
-  },
-  transactionPocket: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  
-  // Right side: Amount and edit button
-  transactionRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: '100%',
-  },
-  amountText: {
-    ...Typography.h3, // Larger amount text like portfolio values
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 8,
-    fontSize: 18,
-  },
-  recurringPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.trustBlue + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+  container: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: 20,
     marginBottom: Spacing.sm,
   },
-  recurringText: {
-    ...Typography.caption,
-    color: Colors.trustBlue,
-    fontWeight: '600',
-    fontSize: 12,
+  mainContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
   },
-  editButton: {
-    alignItems: 'center',
+  leftSection: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  textContent: {
     justifyContent: 'center',
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.surface,
-    minWidth: 32,
-    minHeight: 32,
+  },
+  title: {
+    ...Typography.h4,
+    color: Colors.text,
+    marginBottom: 4, // 4px spacing between title and description
+  },
+  subtitle: {
+    ...Typography.bodySmall,
+    color: Colors.textMuted,
+    marginBottom: 16, // 16px between title/description and labels
+  },
+  rightSection: {
+    alignItems: 'flex-end',
+    minWidth: 80,
+  },
+  amount: {
+    ...Typography.h4, // Changed from h3 to h4 for consistent amount sizing
+    color: Colors.text,
+    textAlign: 'right',
+  },
+  labelsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8, // 8px between labels
+    marginTop: 0, // Remove margin since subtitle already has marginBottom: 16
   },
 });

@@ -7,15 +7,28 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "description": "Smart budget planner and expense tracker with AI insights",
+    "keywords": ["budget", "finance", "expense tracker", "money management", "savings"],
+    "privacy": "public",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon-80x80.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetgoat.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "splash": {
+        "image": "./assets/icon-80x80.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      },
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "This app uses data to provide personalized budget insights and recommendations.",
+        "NSCameraUsageDescription": "This app needs camera access to take photos for receipts and profile pictures.",
+        "NSPhotoLibraryUsageDescription": "This app needs photo library access to select images for receipts and profile pictures."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +37,19 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.budgetgoat.app",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "splash": {
+        "image": "./assets/icon-80x80.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "platforms": [
       "ios",
@@ -32,7 +57,25 @@
     ],
     "plugins": [
       "expo-secure-store",
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0"
+          },
+          "ios": {
+            "deploymentTarget": "13.4"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    }
   }
 }

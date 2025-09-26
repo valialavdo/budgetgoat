@@ -2,8 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { 
   View, 
   Text, 
-  TextInput, 
-  TouchableOpacity, 
+  TextInput,
+  TouchableOpacity,
   StyleSheet, 
   ScrollView, 
   Modal,
@@ -12,7 +12,13 @@ import {
 } from 'react-native';
 import { X, TrendUp, TrendDown, Info } from 'phosphor-react-native';
 import { BudgetContext } from '../context/BudgetContext';
-import { Colors, Spacing, Radius, Typography, Layout, Shadows } from '../theme';
+import { useTheme } from '../context/ThemeContext';
+import SegmentedControl from './SegmentedControl';
+import { useTranslation } from '../i18n';
+import IconButton from './IconButton';
+import ActionButton from './ActionButton';
+import ActionRow from './ActionRow';
+import FormInput from './FormInput';
 import { Transaction, Category } from '../types';
 
 interface TransactionFormProps {
@@ -37,6 +43,9 @@ export default function TransactionForm({
   isEditing = false 
 }: TransactionFormProps) {
   const { state } = useContext(BudgetContext);
+  const theme = useTheme();
+  const { t } = useTranslation();
+  const styles = getStyles(theme);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -52,7 +61,7 @@ export default function TransactionForm({
   useEffect(() => {
     if (initialData) {
       setType(initialData.type || 'expense');
-      setAmount(Math.abs(initialData.amount || 0).toString());
+      setAmount(String(Math.abs(initialData.amount || 0)));
       setDescription(initialData.note || '');
       setSelectedPocketId(initialData.pocketCategoryId || '');
       setDate(new Date());
@@ -145,81 +154,45 @@ export default function TransactionForm({
 
   const renderTypeToggle = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Transaction Type</Text>
-      <View style={styles.typeToggle}>
-        <TouchableOpacity
-          style={[
-            styles.typeButton,
-            type === 'income' && styles.typeButtonSelected
-          ]}
-          onPress={() => setType('income')}
-          activeOpacity={0.7}
-          accessibilityLabel="Select income transaction type"
-          accessibilityRole="button"
-        >
-          <TrendUp weight="regular" size={20} color={type === 'income' ? Colors.background : Colors.income} />
-          <Text style={[
-            styles.typeButtonText,
-            type === 'income' && styles.typeButtonTextSelected
-          ]}>
-            Income
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.typeButton,
-            type === 'expense' && styles.typeButtonSelected
-          ]}
-          onPress={() => setType('expense')}
-          activeOpacity={0.7}
-          accessibilityLabel="Select expense transaction type"
-          accessibilityRole="button"
-        >
-          <TrendDown weight="regular" size={20} color={type === 'expense' ? Colors.background : Colors.expense} />
-          <Text style={[
-            styles.typeButtonText,
-            type === 'expense' && styles.typeButtonTextSelected
-          ]}>
-            Expense
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.sectionTitle}>Type</Text>
+      <Text style={styles.sectionSubtitle}>Select the type of transaction</Text>
+      <SegmentedControl
+        options={[
+          {
+            value: 'income',
+            label: 'Income',
+            icon: <TrendUp />
+          },
+          {
+            value: 'expense',
+            label: 'Expense',
+            icon: <TrendDown />
+          }
+        ]}
+        selectedValue={type}
+        onValueChange={(value) => setType(value as 'income' | 'expense')}
+      />
     </View>
   );
 
   const renderPocketSelector = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Link to Pocket</Text>
-      <View style={styles.pocketGrid}>
-        {availablePockets.map((pocket) => (
-          <TouchableOpacity
-            key={pocket.id}
-            style={[
-              styles.pocketCard,
-              selectedPocketId === pocket.id && styles.pocketCardSelected
-            ]}
-            onPress={() => setSelectedPocketId(pocket.id)}
-            activeOpacity={0.7}
-            accessibilityLabel={`Select ${pocket.name} pocket`}
-            accessibilityRole="button"
-          >
-            <Text style={styles.pocketIcon}>🏦</Text>
-            <Text style={[
-              styles.pocketName,
-              selectedPocketId === pocket.id && styles.pocketNameSelected
-            ]}>
-              {pocket.name}
-            </Text>
-            <Text style={[
-              styles.pocketBalance,
-              selectedPocketId === pocket.id && styles.pocketBalanceSelected
-            ]}>
-              €{pocket.defaultAmount?.toLocaleString() || 0}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <Text style={styles.sectionTitle}>Linked Pocket</Text>
+      <Text style={styles.sectionSubtitle}>Choose which pocket to link this transaction to</Text>
+      <TouchableOpacity 
+        style={styles.pocketInput}
+        onPress={() => {/* TODO: Open pocket selector modal */}}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Select pocket"
+      >
+        <Text style={styles.pocketInputText}>
+          {selectedPocketId 
+            ? availablePockets.find(p => p.id === selectedPocketId)?.name || 'Select a pocket'
+            : 'Select a pocket'
+          }
+        </Text>
+      </TouchableOpacity>
       {errors.pocket && <Text style={styles.errorText}>{errors.pocket}</Text>}
     </View>
   );
@@ -294,9 +267,13 @@ export default function TransactionForm({
         <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={Colors.text} />
-          </TouchableOpacity>
+          <IconButton
+            icon={<X size={32} color={Colors.text} />}
+            onPress={onClose}
+            variant="ghost"
+            size="small"
+            accessibilityLabel="Close"
+          />
           <Text style={styles.headerTitle}>
             {isEditing ? 'Edit Transaction' : 'New Transaction'}
           </Text>
@@ -304,7 +281,7 @@ export default function TransactionForm({
             onPress={() => setShowAIRecommendations(!showAIRecommendations)}
             style={styles.infoButton}
           >
-            <Info size={20} color={Colors.trustBlue} />
+            <Info size={24} color={Colors.trustBlue} />
           </TouchableOpacity>
         </View>
 
@@ -381,24 +358,19 @@ export default function TransactionForm({
 
         {/* Save Button */}
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              { backgroundColor: type === 'income' ? Colors.income : Colors.expense }
-            ]}
+          <ActionButton
+            title={isEditing ? t('transactions.updateTransaction') : t('transactions.saveTransaction')}
             onPress={handleSave}
-            accessibilityLabel="Save transaction"
-            accessibilityRole="button"
-          >
-            {type === 'income' ? (
-              <TrendUp weight="regular" size={20} color={Colors.background} />
+            variant="primary"
+            size="medium"
+            fullWidth
+            icon={type === 'income' ? (
+              <TrendUp weight="light" size={24} color={theme.colors.background} />
             ) : (
-              <TrendDown weight="regular" size={20} color={Colors.background} />
+              <TrendDown weight="light" size={24} color={theme.colors.background} />
             )}
-            <Text style={styles.saveButtonText}>
-              {isEditing ? 'Update Transaction' : 'Create Transaction'}
-            </Text>
-          </TouchableOpacity>
+            accessibilityLabel={isEditing ? t('transactions.updateTransaction') : t('transactions.saveTransaction')}
+          />
         </View>
       </View>
       </View>
@@ -406,7 +378,7 @@ export default function TransactionForm({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -417,19 +389,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    backgroundColor: Colors.background,
+    backgroundColor: theme.colors.surface,
     maxHeight: '85%', // Limit height to 85% of screen
     minHeight: '60%', // Ensure minimum height for content
+    borderTopLeftRadius: theme.radius.lg,
+    borderTopRightRadius: theme.radius.lg,
+    paddingTop: theme.spacing.lg,
+    ...theme.shadows.large,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.surface,
+    borderBottomColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    marginBottom: theme.spacing.lg,
   },
   closeButton: {
     width: Layout.minTapArea,
@@ -478,6 +455,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.h4,
     color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  sectionSubtitle: {
+    ...Typography.bodyMedium,
+    color: Colors.textLight,
     marginBottom: Spacing.md,
   },
   typeToggle: {
@@ -604,7 +586,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     backgroundColor: Colors.surface,
-    ...Typography.body,
+    ...Typography.bodyRegular,
     color: Colors.text,
   },
   inputError: {
@@ -644,5 +626,21 @@ const styles = StyleSheet.create({
   saveButtonText: {
     ...Typography.button,
     color: Colors.background,
+  },
+  pocketInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface,
+    gap: Spacing.sm,
+  },
+  pocketInputText: {
+    ...Typography.bodyLarge,
+    color: Colors.textLight,
+    flex: 1,
   },
 });
