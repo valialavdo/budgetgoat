@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../screens/HomeScreen';
 import PocketsScreen from '../screens/PocketsScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
@@ -56,10 +57,13 @@ const TAB_CONFIG = [
 function SimpleBottomNavigation({ activeTab, onTabChange }: { activeTab: number; onTabChange: (index: number) => void }) {
   const theme = useTheme();
   const { hideTabBar } = useNavigationContext();
+  const insets = useSafeAreaInsets();
   
   if (hideTabBar) {
     return null;
   }
+
+  const styles = getStyles(theme, insets);
 
   return (
     <View style={[styles.navbarContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -118,44 +122,46 @@ function Tabs() {
   );
 }
 
-const styles = StyleSheet.create({
-  navbarContainer: {
-    flexDirection: 'row',
-    borderRadius: 120,
-    height: 68,
-    marginHorizontal: 20,
-    marginTop: 4, // 4px from top of screen
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    zIndex: 1000,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    gap: 2, // Reduced from 4px to 2px
-  },
-  tabLabel: {
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 16,
-    letterSpacing: 0.25,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-});
+function getStyles(theme: any, insets: any) {
+  return StyleSheet.create({
+    navbarContainer: {
+      flexDirection: 'row',
+      borderRadius: 120,
+      height: 68,
+      marginHorizontal: 20,
+      marginTop: 4, // 4px from top of screen
+      paddingTop: 16,
+      paddingBottom: 16,
+      paddingHorizontal: 14,
+      borderWidth: 1,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+      position: 'absolute',
+      bottom: Math.max(insets.bottom, 20), // Use safe area bottom padding
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+    },
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      gap: 2, // Reduced from 4px to 2px
+    },
+    tabLabel: {
+      fontSize: 12,
+      fontWeight: '400',
+      lineHeight: 16,
+      letterSpacing: 0.25,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+  });
+}
 
 export default function RootNavigator() {
   const theme = useTheme();
