@@ -67,14 +67,14 @@
             "buildToolsVersion": "34.0.0"
           },
           "ios": {
-            "deploymentTarget": "13.4"
+            "deploymentTarget": "15.1"
           }
         }
       ]
     ],
     "extra": {
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "1e2be591-59d6-4d42-81bc-c5b3dd7bea67"
       }
     }
   }
