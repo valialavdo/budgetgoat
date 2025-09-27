@@ -106,7 +106,7 @@ export default function BottomSheetWrapper({
   onClose,
   title,
   children,
-  snapPoints = ['60%', '90%'],
+  snapPoints = ['auto', '70%'],
   showCloseButton = true,
   scrollable = true,
   style,

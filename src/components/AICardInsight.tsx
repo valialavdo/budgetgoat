@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 import { X } from 'phosphor-react-native';
 
 interface AICardInsightProps {
@@ -22,6 +22,8 @@ export default function AICardInsight({
   onPress,
   isFirst = false
 }: AICardInsightProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
   return (
     <View style={isFirst ? styles.firstContainer : styles.container}>
       <TouchableOpacity 
@@ -54,54 +56,58 @@ export default function AICardInsight({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginRight: 12, // Spacing between cards
-  },
-  firstContainer: {
-    marginLeft: Spacing.screenPadding, // Only first card starts at screen edge (aligned with title)
-    marginRight: 12, // Spacing between cards
-  },
-  card: {
-    width: 340,
-    backgroundColor: '#F5F5F5',
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    position: 'relative',
-  },
-  dismissButton: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  content: {
-    marginTop: Spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  textContent: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  title: {
-    ...Typography.bodyMedium,
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-  },
-  description: {
-    ...Typography.caption,
-    color: Colors.textMuted,
-  },
-  illustrationContainer: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      marginRight: 12, // Spacing between cards
+    },
+    firstContainer: {
+      marginLeft: theme.spacing.screenPadding, // Only first card starts at screen edge (aligned with title)
+      marginRight: 12, // Spacing between cards
+    },
+    card: {
+      width: 340,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.lg,
+      padding: theme.spacing.md,
+      position: 'relative',
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    dismissButton: {
+      position: 'absolute',
+      top: theme.spacing.sm,
+      right: theme.spacing.sm,
+      width: 24,
+      height: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1,
+    },
+    content: {
+      marginTop: theme.spacing.sm,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    textContent: {
+      flex: 1,
+      marginRight: theme.spacing.md,
+    },
+    title: {
+      ...theme.typography.bodyMedium,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
+    },
+    description: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+    },
+    illustrationContainer: {
+      width: 80,
+      height: 80,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+}

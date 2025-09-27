@@ -130,7 +130,7 @@ function getStyles(theme: any) {
     },
     optionSelected: {
       borderColor: theme.colors.trustBlue,
-      backgroundColor: '#F0F8FF', // Light blue background for selected
+      backgroundColor: theme.colors.trustBlue + '15', // Transparent blue background for selected
     },
     optionContent: {
       flex: 1,

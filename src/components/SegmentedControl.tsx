@@ -80,11 +80,11 @@ function getStyles(theme: any, size: 'small' | 'medium') {
       paddingHorizontal: isSmall ? theme.spacing.sm : theme.spacing.md,
       borderRadius: theme.radius.md,
       borderWidth: 1,
-      backgroundColor: theme.colors.background, // White background for unselected
+      backgroundColor: theme.colors.surface, // Surface background for unselected
       borderColor: theme.colors.borderLight, // Light gray border for unselected
     },
     optionSelected: {
-      backgroundColor: '#F0F8FF', // Light blue background for selected
+      backgroundColor: theme.colors.trustBlue + '15', // Transparent blue background for selected
       borderColor: theme.colors.trustBlue, // Blue border for selected
     },
     optionText: {

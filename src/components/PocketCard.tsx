@@ -79,7 +79,7 @@ function getStyles(theme: any) {
   return StyleSheet.create({
   pocketCard: {
     width: 154,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     borderWidth: 1,
@@ -90,7 +90,7 @@ function getStyles(theme: any) {
   },
   firstPocketCard: {
     width: 154,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: theme.spacing.md,
     borderWidth: 1,

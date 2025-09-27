@@ -74,36 +74,37 @@ export default function Toast({
   };
 
   const getToastConfig = () => {
+    const whiteColor = '#FFFFFF';
     switch (type) {
       case 'success':
         return {
-          icon: <Check size={16} color="#FFFFFF" weight="bold" />,
-          borderColor: '#10B981', // Success green
-          backgroundColor: '#10B981',
+          icon: <Check size={16} color={whiteColor} weight="bold" />,
+          borderColor: theme.colors.success,
+          backgroundColor: theme.colors.success,
         };
       case 'error':
         return {
-          icon: <XCircle size={16} color="#FFFFFF" weight="bold" />,
-          borderColor: '#EF4444', // Error red
-          backgroundColor: '#EF4444',
+          icon: <XCircle size={16} color={whiteColor} weight="bold" />,
+          borderColor: theme.colors.error,
+          backgroundColor: theme.colors.error,
         };
       case 'info':
         return {
-          icon: <Info size={16} color="#FFFFFF" weight="bold" />,
-          borderColor: '#3B82F6', // Info blue
-          backgroundColor: '#3B82F6',
+          icon: <Info size={16} color={whiteColor} weight="bold" />,
+          borderColor: theme.colors.info,
+          backgroundColor: theme.colors.info,
         };
       case 'warning':
         return {
-          icon: <Warning size={16} color="#FFFFFF" weight="bold" />,
-          borderColor: '#F59E0B', // Warning orange
-          backgroundColor: '#F59E0B',
+          icon: <Warning size={16} color={whiteColor} weight="bold" />,
+          borderColor: theme.colors.warning,
+          backgroundColor: theme.colors.warning,
         };
       default:
         return {
-          icon: <Info size={16} color="#FFFFFF" weight="bold" />,
-          borderColor: '#3B82F6',
-          backgroundColor: '#3B82F6',
+          icon: <Info size={16} color={whiteColor} weight="bold" />,
+          borderColor: theme.colors.info,
+          backgroundColor: theme.colors.info,
         };
     }
   };
