@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -26,6 +27,7 @@ interface SplashScreenProps {
  * ```
  */
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
+  const theme = useTheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, [fadeAnim, onFinish]);
 
-  const styles = getStyles();
+  const styles = getStyles(theme);
 
   return (
     <View style={styles.container} accessible={true} accessibilityLabel="BudgetGOAT loading screen">
@@ -74,11 +76,11 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   );
 }
 
-function getStyles() {
+function getStyles(theme: any) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#FFFFFF', // White background
+      backgroundColor: theme.colors.background,
       alignItems: 'center',
       justifyContent: 'center',
     },

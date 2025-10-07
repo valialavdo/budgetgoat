@@ -99,8 +99,8 @@ export default function TransactionDetailView({
         {transaction.isRecurring && (
           <ChipTag
             text="Recurring"
-            backgroundColor="#3B82F6"
-            textColor="#FFFFFF"
+            backgroundColor={theme.colors.trustBlue}
+            textColor={theme.colors.background}
             size="small"
           />
         )}
@@ -152,8 +152,8 @@ export default function TransactionDetailView({
             </Text>
             <ChipTag
               text={transaction.category}
-              backgroundColor="#6B7280"
-              textColor="#FFFFFF"
+              backgroundColor={theme.colors.textMuted}
+              textColor={theme.colors.background}
               size="small"
             />
           </View>

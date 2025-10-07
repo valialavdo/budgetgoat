@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
-import CashflowChart from './CashflowChart';
+import { useTheme } from '../context/ThemeContext';
 import PeriodSelector from './PeriodSelector';
 import { Eye, EyeSlash } from 'phosphor-react-native';
 
@@ -29,6 +28,8 @@ export default function Overview({
   onPeriodChange
 }: OverviewProps) {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const theme = useTheme();
+  const styles = getStyles(theme);
 
   const toggleBalanceVisibility = () => {
     setIsBalanceVisible(!isBalanceVisible);
@@ -63,9 +64,9 @@ export default function Overview({
             accessibilityHint="Toggles the visibility of your current balance"
           >
             {isBalanceVisible ? (
-              <Eye size={24} color={Colors.textMuted} weight="light" />
+              <Eye size={24} color={theme.colors.textMuted} weight="light" />
             ) : (
-              <EyeSlash size={24} color={Colors.textMuted} weight="light" />
+              <EyeSlash size={24} color={theme.colors.textMuted} weight="light" />
             )}
           </TouchableOpacity>
         </View>
@@ -73,11 +74,9 @@ export default function Overview({
       
       {/* Bottom: Chart */}
       <View style={styles.chartSection}>
-        <CashflowChart 
-          incomeData={incomeData}
-          expenseData={expenseData}
-          timeLabels={timeLabels}
-        />
+        <Text style={styles.chartPlaceholder}>
+          Chart visualization coming soon
+        </Text>
         
         {/* Period Selector under the chart with 12px gap */}
         <View style={styles.periodSelectorContainer}>
@@ -91,45 +90,50 @@ export default function Overview({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   container: {
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
     paddingHorizontal: 0,
-    paddingBottom: Spacing.lg,
+    paddingBottom: theme.spacing.lg,
     backgroundColor: 'transparent', // No background color
     marginBottom: 24, // 24px spacing between sections
     width: '100%', // Ensure full width
   },
   textSection: {
     width: '100%',
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.screenPadding, // Add padding back to text section
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.screenPadding, // Add padding back to text section
   },
   label: {
-    ...Typography.bodyRegular,
-    color: Colors.textMuted,
+    ...theme.typography.bodyRegular,
+    color: theme.colors.textMuted,
     marginBottom: 8,
   },
   amountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: theme.spacing.sm,
   },
   amount: {
-    ...Typography.h1,
-    color: Colors.text,
+    ...theme.typography.h1,
+    color: theme.colors.text,
     lineHeight: 40, // Updated to match h1 line height
   },
   eyeButton: {
-    padding: Spacing.xs,
+    padding: theme.spacing.xs,
     borderRadius: 4,
   },
   chartSection: {
     width: '100%',
     alignItems: 'stretch', // Stretch to full width instead of center
     overflow: 'visible', // Allow chart overflow to be visible
+  },
+  chartPlaceholder: {
+    textAlign: 'center',
+    paddingVertical: 20,
+    color: theme.colors.textMuted,
   },
   chartContainer: {
     position: 'relative',
@@ -142,7 +146,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: theme.colors.borderLight,
   },
   chart: {
     position: 'absolute',
@@ -153,24 +157,24 @@ const styles = StyleSheet.create({
   },
   lineSegment: {
     position: 'absolute',
-    backgroundColor: Colors.trustBlue,
+    backgroundColor: theme.colors.trustBlue,
     borderRadius: 1.5,
   },
   budgetLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   budgetLabel: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
-    marginRight: Spacing.xs,
+    ...theme.typography.bodySmall,
+    color: theme.colors.textMuted,
+    marginRight: theme.spacing.xs,
   },
   budgetLineDash: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.borderLight,
-    marginLeft: Spacing.xs,
+    backgroundColor: theme.colors.borderLight,
+    marginLeft: theme.spacing.xs,
   },
   currentLine: {
     position: 'absolute',
@@ -181,17 +185,17 @@ const styles = StyleSheet.create({
   },
   currentLineSegment: {
     position: 'absolute',
-    backgroundColor: Colors.trustBlue,
+    backgroundColor: theme.colors.trustBlue,
     borderRadius: 1.5,
   },
   currentDataPoint: {
     position: 'absolute',
     width: 8,
     height: 8,
-    backgroundColor: Colors.trustBlue,
+    backgroundColor: theme.colors.trustBlue,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: theme.colors.background,
   },
   projectionLine: {
     position: 'absolute',
@@ -202,20 +206,20 @@ const styles = StyleSheet.create({
   },
   projectionLineSegment: {
     position: 'absolute',
-    backgroundColor: Colors.borderLight,
+    backgroundColor: theme.colors.borderLight,
     borderRadius: 1,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: theme.colors.borderLight,
     borderStyle: 'dashed',
   },
   projectionDataPoint: {
     position: 'absolute',
     width: 6,
     height: 6,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: theme.colors.borderLight,
     borderRadius: 3,
     borderWidth: 1,
-    borderColor: Colors.background,
+    borderColor: theme.colors.background,
   },
   timeLabels: {
     position: 'absolute',
@@ -224,36 +228,36 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.sm,
+    paddingHorizontal: theme.spacing.sm,
+    paddingBottom: theme.spacing.sm,
   },
   timeLabel: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
+    ...theme.typography.bodySmall,
+    color: theme.colors.textMuted,
   },
   periodSelector: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.sm,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.sm,
   },
   periodButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: theme.colors.borderLight,
   },
   periodButtonActive: {
-    backgroundColor: Colors.trustBlue,
-    borderColor: Colors.trustBlue,
+    backgroundColor: theme.colors.trustBlue,
+    borderColor: theme.colors.trustBlue,
   },
   periodButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
+    ...theme.typography.bodySmall,
+    color: theme.colors.textMuted,
   },
   periodButtonTextActive: {
-    color: Colors.background,
+    color: theme.colors.background,
   },
   periodSelectorContainer: {
     marginTop: 12, // 12px gap between chart and PeriodSelector

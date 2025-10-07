@@ -1,10 +1,12 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { BudgetContext } from '../context/BudgetContext';
 import { useNavigation } from '@react-navigation/native';
 import SecondaryHeader from '../components/SecondaryHeader';
-import { ArrowLeft, Check, PencilSimple, Camera, User } from 'phosphor-react-native';
+import ChangePasswordBottomSheet from '../components/ChangePasswordBottomSheet';
+import Input from '../components/Input';
+import { ArrowLeft, Check, PencilSimple, Plus, User, CaretRight } from 'phosphor-react-native';
 import MicroInteractionWrapper from '../components/MicroInteractionWrapper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +16,7 @@ export default function EditProfileScreen() {
   const { state } = useContext(BudgetContext);
   const navigation = useNavigation();
   const styles = getStyles(theme);
+  const [scrollY] = useState(new Animated.Value(0));
   
   const [profileData, setProfileData] = useState({
     name: 'Alex Smith',
@@ -24,6 +27,7 @@ export default function EditProfileScreen() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
   const handleBack = () => {
     if (hasChanges) {
@@ -81,6 +85,10 @@ export default function EditProfileScreen() {
   const handleFieldChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
+  };
+
+  const handleChangePassword = () => {
+    setShowChangePasswordModal(true);
   };
 
   const handlePhotoChange = () => {
@@ -152,9 +160,18 @@ export default function EditProfileScreen() {
         onBackPress={handleBack}
         rightIcon={hasChanges ? <Check size={24} color={theme.colors.trustBlue} /> : undefined}
         onRightPress={hasChanges ? handleSave : undefined}
+        scrollY={scrollY}
       />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Profile Picture Section */}
           <View style={styles.profilePictureSection}>
@@ -175,7 +192,7 @@ export default function EditProfileScreen() {
                   <Text style={[styles.profileInitial, { color: theme.colors.background }]}>AS</Text>
                 </View>
                 <View style={[styles.profileEditIcon, { backgroundColor: theme.colors.trustBlue, borderColor: theme.colors.surface }]}>
-                  <Camera size={24} color={theme.colors.background} weight="light" />
+                  <Plus size={10} color={theme.colors.background} weight="bold" />
                 </View>
               </MicroInteractionWrapper>
             </View>
@@ -185,29 +202,23 @@ export default function EditProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Personal Information</Text>
             
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <TextInput
-                style={styles.textInput}
-                value={profileData.name}
-                onChangeText={(text) => handleFieldChange('name', text)}
-                placeholder="Enter your full name"
-                placeholderTextColor={theme.colors.textLight}
-              />
-            </View>
+            <Input
+              label="Full Name"
+              type="text"
+              value={profileData.name}
+              onChangeText={(text) => handleFieldChange('name', text)}
+              placeholder="Enter your full name"
+            />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <TextInput
-                style={styles.textInput}
-                value={profileData.email}
-                onChangeText={(text) => handleFieldChange('email', text)}
-                placeholder="Enter your email"
-                placeholderTextColor={theme.colors.textLight}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+            <Input
+              label="Email Address"
+              type="text"
+              value={profileData.email}
+              onChangeText={(text) => handleFieldChange('email', text)}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Member Since</Text>
@@ -221,18 +232,34 @@ export default function EditProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Privacy & Security</Text>
             
-            <TouchableOpacity style={styles.navigationItem}>
+            <TouchableOpacity 
+              style={styles.navigationItem}
+              onPress={handleChangePassword}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Change Password"
+              accessibilityHint="Opens change password form"
+            >
               <View style={styles.navigationItemLeft}>
                 <View style={styles.iconContainer}>
                   <User size={24} color={theme.colors.trustBlue} weight="light" />
                 </View>
                 <Text style={styles.navigationLabel}>Change Password</Text>
               </View>
-              <Text style={styles.navigationArrow}>›</Text>
+              <CaretRight size={24} color={theme.colors.trustBlue} weight="light" />
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+      
+      {/* Change Password Bottom Sheet */}
+      <ChangePasswordBottomSheet
+        visible={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onPasswordChanged={() => {
+          Alert.alert('Success', 'Your password has been changed successfully.');
+        }}
+      />
     </View>
   );
 }
@@ -247,8 +274,8 @@ function getStyles(theme: any) {
       flex: 1,
     },
     content: {
-      paddingHorizontal: theme.spacing.screenPadding,
-      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
     },
     profilePictureSection: {
       alignItems: 'center',
@@ -291,22 +318,6 @@ function getStyles(theme: any) {
     },
     inputGroup: {
       marginBottom: theme.spacing.md,
-    },
-    inputLabel: {
-      ...theme.typography.bodyMedium,
-      color: theme.colors.text,
-      fontWeight: '600',
-      marginBottom: theme.spacing.sm,
-    },
-    textInput: {
-      ...theme.typography.bodyLarge,
-      color: theme.colors.text,
-      backgroundColor: theme.colors.surface,
-      borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.borderLight,
     },
     previewField: {
       backgroundColor: theme.colors.surface,
@@ -351,10 +362,6 @@ function getStyles(theme: any) {
       ...theme.typography.bodyLarge,
       color: theme.colors.text,
       fontWeight: '500',
-    },
-    navigationArrow: {
-      ...theme.typography.h3,
-      color: theme.colors.textMuted,
     },
   });
 }

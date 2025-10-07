@@ -74,35 +74,34 @@ export default function Toast({
   };
 
   const getToastConfig = () => {
-    const whiteColor = '#FFFFFF';
     switch (type) {
       case 'success':
         return {
-          icon: <Check size={16} color={whiteColor} weight="bold" />,
+          icon: <Check size={16} color={theme.colors.background} weight="bold" />,
           borderColor: theme.colors.success,
           backgroundColor: theme.colors.success,
         };
       case 'error':
         return {
-          icon: <XCircle size={16} color={whiteColor} weight="bold" />,
+          icon: <XCircle size={16} color={theme.colors.background} weight="bold" />,
           borderColor: theme.colors.error,
           backgroundColor: theme.colors.error,
         };
       case 'info':
         return {
-          icon: <Info size={16} color={whiteColor} weight="bold" />,
+          icon: <Info size={16} color={theme.colors.background} weight="bold" />,
           borderColor: theme.colors.info,
           backgroundColor: theme.colors.info,
         };
       case 'warning':
         return {
-          icon: <Warning size={16} color={whiteColor} weight="bold" />,
+          icon: <Warning size={16} color={theme.colors.background} weight="bold" />,
           borderColor: theme.colors.warning,
           backgroundColor: theme.colors.warning,
         };
       default:
         return {
-          icon: <Info size={16} color={whiteColor} weight="bold" />,
+          icon: <Info size={16} color={theme.colors.background} weight="bold" />,
           borderColor: theme.colors.info,
           backgroundColor: theme.colors.info,
         };
@@ -155,7 +154,7 @@ function getStyles(theme: any) {
       top: 60, // Safe area from status bar
       left: theme.spacing.screenPadding,
       right: theme.spacing.screenPadding,
-      backgroundColor: '#FFFFFF', // Clean white background
+      backgroundColor: theme.colors.surface,
       borderRadius: 8, // Slightly rounded corners
       borderLeftWidth: 4,
       shadowColor: '#000',

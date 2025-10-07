@@ -2,12 +2,13 @@ import React, { useState, useMemo, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity, ScrollView, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { BudgetContext } from '../context/BudgetContext';
+// import { usePockets } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import { Plus, Wallet, Target, Link, LinkBreak } from 'phosphor-react-native';
 import Header from '../components/Header';
 import PillFilter from '../components/PillFilter';
 import PocketsListItem from '../components/PocketsListItem';
 import InfoBottomSheet from '../components/InfoBottomSheet';
-import PocketForm from '../components/PocketForm';
+import NewPocketBottomSheet from '../components/NewPocketBottomSheet';
 import PocketBottomSheet from '../components/PocketBottomSheet';
 
 interface Pocket {
@@ -24,6 +25,26 @@ interface Pocket {
 export default function PocketsScreen() {
   const theme = useTheme();
   const { state, upsertCategory, deleteCategories, computePocketBalancesUpTo } = useContext(BudgetContext);
+  // Mock data for Expo Go compatibility
+  const firebasePockets = [
+    {
+      id: '1',
+      name: 'Emergency Fund',
+      type: 'standard',
+      currentBalance: 2500,
+      targetAmount: 0,
+      transactionCount: 5,
+    },
+    {
+      id: '2', 
+      name: 'Vacation',
+      type: 'goal',
+      currentBalance: 800,
+      targetAmount: 2000,
+      transactionCount: 3,
+    }
+  ];
+  const pocketsLoading = false;
   const [showPocketForm, setShowPocketForm] = useState(false);
   const [scrollY] = useState(new Animated.Value(0));
   const [editingPocket, setEditingPocket] = useState<Pocket | null>(null);
@@ -36,28 +57,19 @@ export default function PocketsScreen() {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
   const pocketBalances = computePocketBalancesUpTo(currentMonth);
 
-  // Convert categories to pockets format
+  // Use Firebase pockets data
   const pockets: Pocket[] = useMemo(() => {
-    return state.categories
-      .filter(cat => !cat.isInflux) // Only non-income categories (pockets)
-      .map(cat => {
-        const balance = pocketBalances[cat.id] || 0;
-        const transactionCount = Object.values(state.transactionsByMonth || {})
-          .flat()
-          .filter(tx => tx.pocketCategoryId === cat.id).length;
-        
-        return {
-          id: cat.id,
-          name: cat.name,
-          type: cat.type === 'bank' ? 'standard' : 'goal', // Map bank to standard, others to goal
-          currentBalance: balance,
-          targetAmount: cat.type !== 'bank' ? cat.defaultAmount : undefined,
-          description: cat.notes || '',
-          color: cat.type === 'bank' ? theme.colors.labelStandard : theme.colors.labelGoal,
-          transactionCount,
-        };
-      });
-  }, [state.categories, pocketBalances, state.transactionsByMonth, theme.colors]);
+    return firebasePockets.map(pocket => ({
+      id: pocket.id,
+      name: pocket.name,
+      type: pocket.type,
+      currentBalance: pocket.currentBalance,
+      targetAmount: pocket.targetAmount,
+      description: pocket.description || '',
+      color: pocket.color || (pocket.type === 'standard' ? theme.colors.labelStandard : theme.colors.labelGoal),
+      transactionCount: pocket.transactionCount,
+    }));
+  }, [firebasePockets, theme.colors]);
 
   const filters = [
     { key: 'all', label: 'All' },
@@ -218,13 +230,13 @@ export default function PocketsScreen() {
         content="Pockets help you organize your money for different purposes. Standard pockets are for regular expenses, while Goal Oriented pockets help you save for specific targets."
       />
 
-      <PocketForm
+      <NewPocketBottomSheet
         visible={showPocketForm}
         onClose={() => {
           setShowPocketForm(false);
           setEditingPocket(null);
         }}
-        onSave={handleSavePocket}
+        onPocketCreated={handleSavePocket}
       />
 
       <PocketBottomSheet

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 import SegmentedControl from './SegmentedControl';
 
 interface PeriodSelectorProps {
@@ -9,6 +9,7 @@ interface PeriodSelectorProps {
 }
 
 export default function PeriodSelector({ selectedPeriod, onPeriodChange }: PeriodSelectorProps) {
+  const theme = useTheme();
   const periods: Array<'1M' | '3M' | '6M' | '1Y'> = ['1M', '3M', '6M', '1Y'];
   
   // Map internal values to display labels
@@ -21,6 +22,8 @@ export default function PeriodSelector({ selectedPeriod, onPeriodChange }: Perio
       default: return period;
     }
   };
+
+  const styles = getStyles(theme);
 
   return (
     <View style={styles.container}>
@@ -37,30 +40,14 @@ export default function PeriodSelector({ selectedPeriod, onPeriodChange }: Perio
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'center', // Center align buttons
-    alignItems: 'center',
-    marginTop: 12, // Exactly 12px gap from chart
-    width: '100%', // Full width to ensure proper centering
-    paddingHorizontal: 20, // Keep 20px margins for period selector buttons
-    gap: 8, // 8px gap between buttons
-  },
-  periodButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: 8,
-    backgroundColor: Colors.surface, // Use button background color for inactive
-  },
-  periodButtonActive: {
-    backgroundColor: Colors.trustBlue, // Blue background for active, no border
-  },
-  periodButtonText: {
-    ...Typography.bodySmall,
-    color: Colors.textMuted,
-  },
-  periodButtonTextActive: {
-    color: Colors.background,
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      justifyContent: 'center', // Center align buttons
+      alignItems: 'center',
+      marginTop: 12, // Exactly 12px gap from chart
+      width: '100%', // Full width to ensure proper centering
+      paddingHorizontal: 20, // Keep 20px margins for period selector buttons
+    },
+  });
+}

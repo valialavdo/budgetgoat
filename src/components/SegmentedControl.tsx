@@ -45,14 +45,14 @@ export default function SegmentedControl({
             <View style={styles.iconContainer}>
               {React.cloneElement(option.icon as React.ReactElement, {
                 size: 24,
-                color: selectedValue === option.value ? theme.colors.trustBlue : theme.colors.textMuted,
+                color: selectedValue === option.value ? theme.colors.background : theme.colors.text,
                 weight: 'light'
-              })}
+              } as any)}
             </View>
           )}
           <Text style={[
             styles.optionText,
-            { color: selectedValue === option.value ? theme.colors.trustBlue : theme.colors.text }
+            selectedValue === option.value && styles.optionTextSelected
           ]}>
             {option.label}
           </Text>
@@ -68,7 +68,11 @@ function getStyles(theme: any, size: 'small' | 'medium') {
   return StyleSheet.create({
     container: {
       flexDirection: 'row',
-      gap: theme.spacing.md,
+      backgroundColor: theme.colors.background, // Continuous background
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      borderColor: theme.colors.borderLight,
+      overflow: 'hidden', // Ensure clean edges
     },
     option: {
       flex: 1,
@@ -76,20 +80,20 @@ function getStyles(theme: any, size: 'small' | 'medium') {
       alignItems: 'center',
       justifyContent: 'center',
       gap: isSmall ? theme.spacing.xs : theme.spacing.sm,
-      paddingVertical: isSmall ? 4 : theme.spacing.sm, // Even smaller vertical padding for small variant
+      paddingVertical: isSmall ? 8 : theme.spacing.sm,
       paddingHorizontal: isSmall ? theme.spacing.sm : theme.spacing.md,
-      borderRadius: theme.radius.md,
-      borderWidth: 1,
-      backgroundColor: theme.colors.surface, // Surface background for unselected
-      borderColor: theme.colors.borderLight, // Light gray border for unselected
+      backgroundColor: 'transparent', // Transparent by default
     },
     optionSelected: {
-      backgroundColor: theme.colors.trustBlue + '15', // Transparent blue background for selected
-      borderColor: theme.colors.trustBlue, // Blue border for selected
+      backgroundColor: theme.colors.trustBlue, // Blue background for selected
     },
     optionText: {
       ...(isSmall ? theme.typography.bodySmall : theme.typography.bodyMedium),
       fontWeight: '600',
+      color: theme.colors.text, // Dark text for unselected
+    },
+    optionTextSelected: {
+      color: theme.colors.background, // White text for selected (on blue background)
     },
     iconContainer: {
       alignItems: 'center',

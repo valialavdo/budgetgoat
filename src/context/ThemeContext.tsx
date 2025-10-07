@@ -197,6 +197,20 @@ export const Typography = {
     letterSpacing: 0,
     fontFamily: 'System',
   },
+  h5: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    lineHeight: 24,
+    letterSpacing: 0,
+    fontFamily: 'System',
+  },
+  h6: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    lineHeight: 20,
+    letterSpacing: 0,
+    fontFamily: 'System',
+  },
   
   // Body text - Regular weight for body text
   body1: {
@@ -217,6 +231,20 @@ export const Typography = {
     fontSize: 16,
     fontWeight: '400' as const,
     lineHeight: 24,
+    letterSpacing: 0,
+    fontFamily: 'System',
+  },
+  bodyLarge: {
+    fontSize: 18,
+    fontWeight: '400' as const,
+    lineHeight: 26,
+    letterSpacing: 0,
+    fontFamily: 'System',
+  },
+  bodyMedium: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    lineHeight: 22,
     letterSpacing: 0,
     fontFamily: 'System',
   },
@@ -318,6 +346,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       }
     } catch (error) {
       console.warn('Failed to load theme preference:', error);
+      // Fallback to system theme if AsyncStorage fails
+      setThemeModeState('system');
     }
   };
 

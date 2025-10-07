@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Spacing, Typography } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface SectionTitleProps {
   title: string;
@@ -17,6 +17,9 @@ export default function SectionTitle({
   rightButton, 
   marginBottom = 12 
 }: SectionTitleProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
+
   return (
     <View style={[styles.container, { marginBottom }]}>
       <Text style={styles.title}>{title}</Text>
@@ -37,24 +40,26 @@ export default function SectionTitle({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-  },
-  title: {
-    ...Typography.h4,
-    color: Colors.text,
-  },
-  rightButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  rightButtonText: {
-    ...Typography.bodyMedium,
-    color: Colors.trustBlue,
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    title: {
+      ...theme.typography.h3,
+      color: theme.colors.text,
+      fontWeight: '700', // Ensure bold weight for section titles
+    },
+    rightButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.xs,
+    },
+    rightButtonText: {
+      ...theme.typography.bodyMedium,
+      color: theme.colors.trustBlue,
+    },
+  });
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 import { TrendUp, TrendDown, Clock, Link, LinkBreak } from 'phosphor-react-native';
 import LabelPill from './LabelPill';
 import Divider from './Divider';
@@ -31,6 +31,8 @@ export default function TransactionListItem({
   onPress, 
   showDivider = true 
 }: TransactionListItemProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
   const isPositive = amount > 0;
   
   const renderLabels = () => {
@@ -152,7 +154,7 @@ export default function TransactionListItem({
         <View style={styles.rightSection}>
           <Text style={[
             styles.amount,
-            { color: isPositive ? Colors.income : Colors.expense }
+            { color: isPositive ? theme.colors.income : theme.colors.expense }
           ]}>
             {formatCurrency(amount)}
           </Text>
@@ -164,45 +166,47 @@ export default function TransactionListItem({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 12,
-    marginTop: 12,
-  },
-  mainContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingBottom: Spacing.md,
-  },
-  leftSection: {
-    flex: 1,
-    marginRight: Spacing.md,
-  },
-  textContent: {
-    gap: 4,
-  },
-  title: {
-    ...Typography.bodyRegular,
-    color: Colors.text,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  date: {
-    ...Typography.bodyMedium,
-    color: Colors.textMuted,
-    marginTop: 8,
-  },
-  labelsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'nowrap',
-  },
-  rightSection: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  amount: {
-    ...Typography.bodyRegular,
-    fontWeight: '700',
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      marginBottom: 12,
+      marginTop: 12,
+    },
+    mainContent: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingBottom: theme.spacing.md,
+    },
+    leftSection: {
+      flex: 1,
+      marginRight: theme.spacing.md,
+    },
+    textContent: {
+      gap: 4,
+    },
+    title: {
+      ...theme.typography.bodyRegular,
+      color: theme.colors.text,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    date: {
+      ...theme.typography.bodyMedium,
+      color: theme.colors.textMuted,
+      marginTop: 8,
+    },
+    labelsContainer: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'nowrap',
+    },
+    rightSection: {
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+    },
+    amount: {
+      ...theme.typography.bodyRegular,
+      fontWeight: '700',
+    },
+  });
+}

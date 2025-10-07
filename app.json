@@ -6,58 +6,41 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "jsEngine": "hermes",
     "description": "Smart budget planner and expense tracker with AI insights",
-    "keywords": ["budget", "finance", "expense tracker", "money management", "savings"],
-    "privacy": "public",
     "splash": {
       "image": "./assets/icon-80x80.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.budgetgoat.app",
       "buildNumber": "1",
-      "splash": {
-        "image": "./assets/icon-80x80.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
-      },
-      "infoPlist": {
-        "NSUserTrackingUsageDescription": "This app uses data to provide personalized budget insights and recommendations.",
-        "NSCameraUsageDescription": "This app needs camera access to take photos for receipts and profile pictures.",
-        "NSPhotoLibraryUsageDescription": "This app needs photo library access to select images for receipts and profile pictures."
-      }
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.budgetgoat.app",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "INTERNET",
         "ACCESS_NETWORK_STATE"
-      ],
-      "splash": {
-        "image": "./assets/icon-80x80.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
-      }
+      ]
     },
-    "platforms": [
-      "ios",
-      "android"
-    ],
     "plugins": [
-      "expo-secure-store",
-      "expo-font",
+      "@react-native-firebase/app",
       [
         "expo-build-properties",
         {
@@ -71,11 +54,6 @@
           }
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "1e2be591-59d6-4d42-81bc-c5b3dd7bea67"
-      }
-    }
+    ]
   }
 }

@@ -19,7 +19,6 @@ import {
   ChartLine, 
   TrendDown,
   Warning,
-  CheckCircle,
   ArrowRight,
   ThumbsUp,
   ThumbsDown

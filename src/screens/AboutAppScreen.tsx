@@ -98,7 +98,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   },
   mainHeading: {
     ...theme.typography.h2,
-    color: theme.colors.text,
+    color: theme.colors.textMuted,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: theme.spacing.lg,

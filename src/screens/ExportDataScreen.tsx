@@ -9,6 +9,7 @@ import {
   Switch,
   Modal,
   Platform,
+  Animated,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { BudgetContext } from '../context/BudgetContext';
@@ -16,6 +17,10 @@ import { useNavigation } from '@react-navigation/native';
 import SecondaryHeader from '../components/SecondaryHeader';
 import BaseBottomSheet from '../components/BaseBottomSheet';
 import ActionButton from '../components/ActionButton';
+import SelectionList from '../components/SelectionList';
+import SelectionInput from '../components/SelectionInput';
+import SelectionOption from '../components/SelectionOption';
+import RadioSelectionOption from '../components/RadioSelectionOption';
 import { 
   Download, 
   Calendar, 
@@ -23,8 +28,9 @@ import {
   Receipt, 
   FileText, 
   FilePdf,
-  CheckCircle,
-  RadioButton,
+  Target,
+  Check,
+  Circle,
   X
 } from 'phosphor-react-native';
 
@@ -67,7 +73,7 @@ const EXPORT_OPTIONS: ExportOption[] = [
     id: 'budgets', 
     label: 'Budgets', 
     description: 'Budget plans and goals',
-    icon: CheckCircle 
+    icon: Target 
   },
 ];
 
@@ -89,13 +95,15 @@ export default function ExportDataScreen() {
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'start' | 'end'>('start');
+  const [scrollY] = useState(new Animated.Value(0));
   const styles = getStyles(theme);
 
   const handleBack = () => {
     navigation.goBack();
   };
 
-  const handleDateRangeSelect = (rangeId: string) => {
+  const handleDateRangeSelect = (value: string | string[]) => {
+    const rangeId = Array.isArray(value) ? value[0] : value;
     if (rangeId === 'custom') {
       setShowCustomDateModal(true);
     } else {
@@ -103,16 +111,21 @@ export default function ExportDataScreen() {
     }
   };
 
-  const handleFormatSelect = (formatId: string) => {
+  const handleFormatSelect = (value: string | string[]) => {
+    const formatId = Array.isArray(value) ? value[0] : value;
     setSelectedFormat(formatId);
   };
 
-  const handleOptionToggle = (optionId: string) => {
-    setSelectedOptions(prev => 
-      prev.includes(optionId) 
-        ? prev.filter(id => id !== optionId)
-        : [...prev, optionId]
-    );
+  const handleOptionToggle = (value: string | string[]) => {
+    if (Array.isArray(value)) {
+      setSelectedOptions(value);
+    } else {
+      setSelectedOptions(prev => 
+        prev.includes(value) 
+          ? prev.filter(id => id !== value)
+          : [...prev, value]
+      );
+    }
   };
 
   const handleCustomDateConfirm = () => {
@@ -223,162 +236,61 @@ export default function ExportDataScreen() {
       <SecondaryHeader
         title="Export Data"
         onBackPress={handleBack}
+        scrollY={scrollY}
       />
       
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Date Range Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Date Range</Text>
-          <View style={styles.optionsList}>
-            {DATE_RANGES.map((range) => (
-              <TouchableOpacity
-                key={range.id}
-                style={[
-                  styles.optionItem,
-                  isDateRangeSelected(range.id) && styles.optionItemSelected
-                ]}
-                onPress={() => handleDateRangeSelect(range.id)}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${range.label}`}
-                accessibilityHint={range.description}
-              >
-                <View style={styles.optionInfo}>
-                  <Calendar 
-                    size={20} 
-                    color={isDateRangeSelected(range.id) ? theme.colors.trustBlue : theme.colors.textMuted} 
-                    weight="light" 
-                  />
-                  <View style={styles.optionDetails}>
-                    <Text style={[
-                      styles.optionLabel,
-                      isDateRangeSelected(range.id) && styles.optionLabelSelected
-                    ]}>
-                      {range.label}
-                    </Text>
-                    <Text style={styles.optionDescription}>
-                      {range.description}
-                    </Text>
-                  </View>
-                </View>
-                
-                  <RadioButton 
-                    size={20} 
-                    color={isDateRangeSelected(range.id) ? theme.colors.trustBlue : theme.colors.borderLight} 
-                    weight={isDateRangeSelected(range.id) ? "fill" : "light"} 
-                  />
-              </TouchableOpacity>
-            ))}
-          </View>
+          {DATE_RANGES.map((range) => (
+            <RadioSelectionOption
+              key={range.id}
+              title={range.label}
+              subtitle={range.description}
+              icon={<Calendar size={20} weight="light" />}
+              selected={isDateRangeSelected(range.id)}
+              onPress={() => handleDateRangeSelect(range.id)}
+            />
+          ))}
         </View>
 
         {/* Data Types Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data to Export</Text>
-          <View style={styles.optionsList}>
-            {EXPORT_OPTIONS.map((option) => {
-              const IconComponent = option.icon;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.toggleOptionItem,
-                    isOptionSelected(option.id) && styles.toggleOptionItemSelected
-                  ]}
-                  onPress={() => handleOptionToggle(option.id)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${isOptionSelected(option.id) ? 'Deselect' : 'Select'} ${option.label}`}
-                  accessibilityHint={option.description}
-                >
-                  <View style={styles.optionInfo}>
-                    <IconComponent 
-                      size={20} 
-                      color={isOptionSelected(option.id) ? theme.colors.trustBlue : theme.colors.textMuted} 
-                      weight="light" 
-                    />
-                    <View style={styles.optionDetails}>
-                      <Text style={[
-                        styles.optionLabel,
-                        isOptionSelected(option.id) && styles.optionLabelSelected
-                      ]}>
-                        {option.label}
-                      </Text>
-                      <Text style={styles.optionDescription}>
-                        {option.description}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  {isOptionSelected(option.id) ? (
-                    <CheckCircle 
-                      size={20} 
-                      color={theme.colors.trustBlue} 
-                      weight="light" 
-                    />
-                  ) : (
-                    <RadioButton 
-                      size={20} 
-                      color={theme.colors.borderLight} 
-                      weight="light" 
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {EXPORT_OPTIONS.map((option) => (
+            <SelectionOption
+              key={option.id}
+              title={option.label}
+              subtitle={option.description}
+              icon={<option.icon size={20} weight="light" />}
+              selected={isOptionSelected(option.id)}
+              onPress={() => handleOptionToggle(option.id)}
+            />
+          ))}
         </View>
 
         {/* File Format Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Export Format</Text>
-          <View style={styles.optionsList}>
-            {FILE_FORMATS.map((format) => {
-              const IconComponent = format.icon;
-              return (
-                <TouchableOpacity
-                  key={format.id}
-                  style={[
-                    styles.optionItem,
-                    isFormatSelected(format.id) && styles.optionItemSelected
-                  ]}
-                  onPress={() => handleFormatSelect(format.id)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${format.label} format`}
-                  accessibilityHint={format.description}
-                >
-                  <View style={styles.optionInfo}>
-                    <IconComponent 
-                      size={20} 
-                      color={isFormatSelected(format.id) ? theme.colors.trustBlue : theme.colors.textMuted} 
-                      weight="light" 
-                    />
-                    <View style={styles.optionDetails}>
-                      <Text style={[
-                        styles.optionLabel,
-                        isFormatSelected(format.id) && styles.optionLabelSelected
-                      ]}>
-                        {format.label}
-                      </Text>
-                      <Text style={styles.optionDescription}>
-                        {format.description}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <RadioButton 
-                    size={20} 
-                    color={isFormatSelected(format.id) ? theme.colors.trustBlue : theme.colors.borderLight} 
-                    weight={isFormatSelected(format.id) ? "fill" : "light"} 
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {FILE_FORMATS.map((format) => (
+            <RadioSelectionOption
+              key={format.id}
+              title={format.label}
+              subtitle={format.description}
+              icon={<format.icon size={20} weight="light" />}
+              selected={isFormatSelected(format.id)}
+              onPress={() => handleFormatSelect(format.id)}
+            />
+          ))}
         </View>
 
         {/* Export Button */}
@@ -400,58 +312,43 @@ export default function ExportDataScreen() {
         </Text>
       </ScrollView>
 
-      {/* Custom Date Range Modal */}
-      <Modal
+      {/* Custom Date Range Bottom Sheet */}
+      <BaseBottomSheet
         visible={showCustomDateModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCustomDateCancel}
+        onClose={handleCustomDateCancel}
+        title="Select Date Range"
+        actionButtons={[
+          {
+            title: 'Cancel',
+            variant: 'secondary',
+            onPress: handleCustomDateCancel,
+          },
+          {
+            title: 'Confirm',
+            variant: 'primary',
+            onPress: handleCustomDateConfirm,
+            disabled: !customStartDate || !customEndDate,
+          },
+        ]}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Date Range</Text>
-            
-            <View style={styles.dateInputContainer}>
-              <Text style={styles.dateLabel}>Start Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => handleDateButtonPress('start')}
-              >
-                <Text style={styles.dateButtonText}>
-                  {customStartDate ? customStartDate.toLocaleDateString() : 'Select Start Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.dateInputContainer}>
-              <Text style={styles.dateLabel}>End Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => handleDateButtonPress('end')}
-              >
-                <Text style={styles.dateButtonText}>
-                  {customEndDate ? customEndDate.toLocaleDateString() : 'Select End Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleCustomDateCancel}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleCustomDateConfirm}
-              >
-                <Text style={styles.confirmButtonText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <View style={styles.dateRangeContent}>
+          <SelectionInput
+            label="Start Date"
+            value={customStartDate ? customStartDate.toLocaleDateString() : ''}
+            placeholder="Select Start Date"
+            onPress={() => handleDateButtonPress('start')}
+            icon={<Calendar size={20} weight="light" />}
+          />
+          
+          <SelectionInput
+            label="End Date"
+            value={customEndDate ? customEndDate.toLocaleDateString() : ''}
+            placeholder="Select End Date"
+            onPress={() => handleDateButtonPress('end')}
+            icon={<Calendar size={20} weight="light" />}
+          />
         </View>
-      </Modal>
+      </BaseBottomSheet>
 
       {/* Date Picker Bottom Sheet */}
       <BaseBottomSheet
@@ -493,10 +390,10 @@ export default function ExportDataScreen() {
                   {isToday && ' (Today)'}
                 </Text>
                 {isSelected && (
-                  <CheckCircle 
+                  <Check 
                     size={20} 
                     color={theme.colors.trustBlue} 
-                    weight="light" 
+                    weight="bold" 
                   />
                 )}
               </TouchableOpacity>
@@ -518,72 +415,19 @@ const getStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   section: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg, // 24px spacing between sections
   },
   sectionTitle: {
-    ...theme.typography.bodyLarge,
+    fontSize: 14, // 14px for titles
     color: theme.colors.text,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8, // 8px spacing between title and content
     fontWeight: '600',
-  },
-  optionsList: {
-    // Removed background and radius as requested
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    minHeight: 64,
-  },
-  toggleOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    minHeight: 64,
-  },
-  toggleOptionItemSelected: {
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.trustBlue,
-  },
-  optionItemSelected: {
-    backgroundColor: theme.colors.trustBlue + '10',
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.trustBlue,
-  },
-  optionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: theme.spacing.md,
-  },
-  optionDetails: {
-    flex: 1,
-  },
-  optionLabel: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.text,
-    fontWeight: '600',
-  },
-  optionLabelSelected: {
-    color: theme.colors.trustBlue,
-  },
-  optionDescription: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
   infoText: {
     ...theme.typography.bodySmall,
     color: theme.colors.textMuted,
     textAlign: 'center',
+    marginTop: theme.spacing.lg, // 24px spacing above the text
     marginBottom: theme.spacing.xl,
   },
   // Modal styles
@@ -687,6 +531,9 @@ const getStyles = (theme: any) => StyleSheet.create({
   },
   datePickerContent: {
     flex: 1,
+  },
+  dateRangeContent: {
+    paddingVertical: theme.spacing.sm,
   },
   datePickerScrollView: {
     flex: 1,

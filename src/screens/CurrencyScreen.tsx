@@ -84,11 +84,17 @@ export default function CurrencyScreen() {
       <SecondaryHeader
         title="Currency"
         onBackPress={handleBack}
+        scrollY={scrollY}
       />
       
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Current Selection Preview */}
         <View style={styles.section}>
@@ -169,9 +175,9 @@ export default function CurrencyScreen() {
                 </View>
                 
             <RadioButton 
-              size={20} 
-              color={isCurrencySelected(currency.code) ? theme.colors.trustBlue : theme.colors.borderLight} 
-              weight={isCurrencySelected(currency.code) ? "fill" : "light"} 
+              size={28} 
+              weight="light"
+              color={isCurrencySelected(currency.code) ? theme.colors.trustBlue : theme.colors.borderLight}
             />
               </TouchableOpacity>
             ))}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "616944058051",
+    "project_id": "budgetgoat-e6fd2",
+    "storage_bucket": "budgetgoat-e6fd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:616944058051:android:74934880df425f77e82c76",
+        "android_client_info": {
+          "package_name": "com.budgetgoat.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtkSFKvCRXNCimSdTBKSlnsT-35nok_ho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

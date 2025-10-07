@@ -131,11 +131,11 @@ export default function SelectionInput({
         accessibilityHint={accessibilityHint || 'Opens selection options'}
       >
         <View style={styles.iconContainer}>
-          {React.cloneElement(icon as React.ReactElement, {
+          {icon && React.cloneElement(icon as React.ReactElement, {
             size: 20,
             color: disabled ? theme.colors.textLight : theme.colors.textMuted,
             weight: 'light'
-          })}
+          } as any)}
         </View>
         
         <Text
@@ -146,7 +146,7 @@ export default function SelectionInput({
                 ? theme.colors.textLight 
                 : value 
                   ? theme.colors.text 
-                  : theme.colors.textMuted,
+                  : theme.colors.textLight,
             },
           ]}
         >
@@ -164,13 +164,13 @@ export default function SelectionInput({
 function getStyles(theme: any, error?: string, disabled?: boolean) {
   return StyleSheet.create({
     container: {
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.lg, // 24px spacing between inputs
     },
     label: {
-      ...theme.typography.subtitle1,
+      ...theme.typography.bodyMedium,
       color: theme.colors.text,
       fontWeight: '500',
-      marginBottom: theme.spacing.xs,
+      marginBottom: 8, // 8px spacing between title and input
     },
     required: {
       color: theme.colors.alertRed,
@@ -178,7 +178,7 @@ function getStyles(theme: any, error?: string, disabled?: boolean) {
     description: {
       ...theme.typography.bodySmall,
       color: theme.colors.textMuted,
-      marginBottom: theme.spacing.sm,
+      marginBottom: 8, // 8px spacing between description and input
     },
     input: {
       ...theme.typography.body1,
@@ -199,7 +199,7 @@ function getStyles(theme: any, error?: string, disabled?: boolean) {
     },
     inputText: {
       flex: 1,
-      fontSize: 16, // Prevent zoom on iOS
+      ...theme.typography.bodyLarge,
     },
     disabled: {
       opacity: 0.6,

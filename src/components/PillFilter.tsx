@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { View, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+import PillSegmentedControl from './PillSegmentedControl';
 
 interface PillFilterProps {
   selectedFilter: string;
@@ -13,55 +14,28 @@ export default function PillFilter({
   onFilterChange,
   filters,
 }: PillFilterProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
+
   return (
     <View style={styles.container}>
-      {filters.map((filter) => (
-        <TouchableOpacity
-          key={filter.key}
-          style={[
-            styles.filterPill,
-            selectedFilter === filter.key && styles.filterPillSelected,
-          ]}
-          onPress={() => onFilterChange(filter.key)}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.filterPillText,
-              selectedFilter === filter.key && styles.filterPillTextSelected,
-            ]}
-          >
-            {filter.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      <PillSegmentedControl
+        options={filters.map(filter => ({
+          value: filter.key,
+          label: filter.label,
+        }))}
+        selectedValue={selectedFilter}
+        onValueChange={onFilterChange}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.screenPadding,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  filterPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.round,
-    backgroundColor: Colors.surface,
-  },
-  filterPillSelected: {
-    backgroundColor: Colors.trustBlue,
-  },
-  filterPillText: {
-    ...Typography.bodyMedium,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  filterPillTextSelected: {
-    color: Colors.background,
-    fontWeight: '600',
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      paddingHorizontal: theme.spacing.screenPadding,
+      marginBottom: theme.spacing.md,
+    },
+  });
+}

@@ -3,44 +3,52 @@ import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/nati
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFirebase } from '../context/FirebaseContext';
+import { useOnboarding } from '../context/OnboardingContext';
+import OnboardingScreen from '../screens/OnboardingScreen';
+import AuthScreen from '../screens/AuthScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PocketsScreen from '../screens/PocketsScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import AccountScreen from '../screens/AccountScreen';
-import NewTransactionScreen from '../screens/NewTransactionScreen';
-import NewPocketScreen from '../screens/NewPocketScreen';
-import AppearanceScreen from '../screens/AppearanceScreen';
-import CurrencyScreen from '../screens/CurrencyScreen';
-import ExportDataScreen from '../screens/ExportDataScreen';
-import EditProfileScreen from '../screens/EditProfileScreen';
-import HelpSupportScreen from '../screens/HelpSupportScreen';
-import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
-import AboutAppScreen from '../screens/AboutAppScreen';
-import RateUsScreen from '../screens/RateUsScreen';
-import AIInsightsScreen from '../screens/AIInsightsScreen';
-import TransactionsListScreen from '../screens/TransactionsListScreen';
-import ProjectionDetailsScreen from '../screens/ProjectionDetailsScreen';
-import SendToEmailScreen from '../screens/SendToEmailScreen';
+// Temporarily comment out problematic imports
+// import NewTransactionScreen from '../screens/NewTransactionScreen';
+// import NewPocketScreen from '../screens/NewPocketScreen';
+// import AppearanceScreen from '../screens/AppearanceScreen';
+// import CurrencyScreen from '../screens/CurrencyScreen';
+// import ExportDataScreen from '../screens/ExportDataScreen';
+// import EditProfileScreen from '../screens/EditProfileScreen';
+// import HelpSupportScreen from '../screens/HelpSupportScreen';
+// import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+// import AboutAppScreen from '../screens/AboutAppScreen';
+// import RateUsScreen from '../screens/RateUsScreen';
+// import AIInsightsScreen from '../screens/AIInsightsScreen';
+// import TransactionsListScreen from '../screens/TransactionsListScreen';
+// import ProjectionDetailsScreen from '../screens/ProjectionDetailsScreen';
+// import SendToEmailScreen from '../screens/SendToEmailScreen';
 import { SquaresFour, Wallet, Receipt, User } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigationContext } from '../context/NavigationContext';
 
 export type RootStackParamList = {
+  Onboarding: undefined;
+  Auth: undefined;
   Tabs: undefined;
-  NewTransaction: undefined;
-  NewPocket: undefined;
-  Appearance: undefined;
-  Currency: undefined;
-  ExportData: undefined;
-  EditProfile: undefined;
-  HelpSupport: undefined;
-  PrivacyPolicy: undefined;
-  AboutApp: undefined;
-  RateUs: undefined;
-  AIInsights: undefined;
-  TransactionsList: undefined;
-  ProjectionDetails: undefined;
-  SendToEmail: undefined;
+  // Temporarily commented out
+  // NewTransaction: undefined;
+  // NewPocket: undefined;
+  // Appearance: undefined;
+  // Currency: undefined;
+  // ExportData: undefined;
+  // EditProfile: undefined;
+  // HelpSupport: undefined;
+  // PrivacyPolicy: undefined;
+  // AboutApp: undefined;
+  // RateUs: undefined;
+  // AIInsights: undefined;
+  // TransactionsList: undefined;
+  // ProjectionDetails: undefined;
+  // SendToEmail: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -134,7 +142,7 @@ function getStyles(theme: any, insets: any) {
       paddingBottom: 16,
       paddingHorizontal: 14,
       borderWidth: 1,
-      shadowColor: "#000",
+      shadowColor: theme.colors.shadow,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
@@ -165,6 +173,11 @@ function getStyles(theme: any, insets: any) {
 
 export default function RootNavigator() {
   const theme = useTheme();
+  const { isAuthenticated, loading: firebaseLoading } = useFirebase();
+  const { hasCompletedOnboarding, completeOnboarding } = useOnboarding();
+  
+  // Show loading screen while contexts are initializing
+  const loading = firebaseLoading || hasCompletedOnboarding === null;
   
   const AppTheme: Theme = {
     ...DefaultTheme,
@@ -179,74 +192,104 @@ export default function RootNavigator() {
     },
   };
 
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <NavigationContainer theme={AppTheme}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+          <Text style={{ color: theme.colors.text, ...theme.typography.body1 }}>Loading...</Text>
+        </View>
+      </NavigationContainer>
+    );
+  }
+
+  const handleOnboardingComplete = async () => {
+    await completeOnboarding();
+  };
+
   return (
     <NavigationContainer theme={AppTheme}>
-      <Stack.Navigator>
-        <Stack.Screen
-          name="Tabs"
-          component={Tabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!hasCompletedOnboarding ? (
+          <Stack.Screen
+            name="Onboarding"
+            options={{ headerShown: false }}
+          >
+            {() => <OnboardingScreen onComplete={handleOnboardingComplete} />}
+          </Stack.Screen>
+        ) : !isAuthenticated ? (
+          <Stack.Screen
+            name="Auth"
+            component={AuthScreen}
+            options={{ headerShown: false }}
+          />
+        ) : (
+          <Stack.Screen
+            name="Tabs"
+            component={Tabs}
+            options={{ headerShown: false }}
+          />
+        )}
+        {/* <Stack.Screen
           name="Appearance"
           component={AppearanceScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="Currency"
           component={CurrencyScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="ExportData"
           component={ExportDataScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="EditProfile"
           component={EditProfileScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="HelpSupport"
           component={HelpSupportScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicyScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="AboutApp"
           component={AboutAppScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="RateUs"
           component={RateUsScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="AIInsights"
           component={AIInsightsScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="TransactionsList"
           component={TransactionsListScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="ProjectionDetails"
           component={ProjectionDetailsScreen}
           options={{ headerShown: false }}
-        />
-        <Stack.Screen
+        /> */}
+        {/* <Stack.Screen
           name="SendToEmail"
           component={SendToEmailScreen}
           options={{ headerShown: false }}
-        />
+        /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );

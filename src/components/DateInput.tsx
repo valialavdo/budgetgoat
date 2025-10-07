@@ -4,13 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar, Check, X } from 'phosphor-react-native';
+import { Calendar } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useMicroInteractions } from '../context/MicroInteractionsContext';
 import { format } from 'date-fns';
+import BaseBottomSheet from './BaseBottomSheet';
 
 export interface DateInputProps {
   /**
@@ -169,37 +169,35 @@ export default function DateInput({
       )}
 
       {showPicker && (
-        <Modal
-          transparent={true}
-          animationType="slide"
+        <BaseBottomSheet
           visible={showPicker}
-          onRequestClose={handleCancel}
+          onClose={handleCancel}
+          title="Select Date"
+          actionButtons={[
+            {
+              text: 'Cancel',
+              onPress: handleCancel,
+              variant: 'secondary',
+            },
+            {
+              text: 'Confirm',
+              onPress: handleConfirm,
+              variant: 'primary',
+            },
+          ]}
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-                <TouchableOpacity onPress={handleCancel} style={styles.modalButton}>
-                  <X size={20} color={theme.colors.text} weight="light" />
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Select Date</Text>
-                <TouchableOpacity onPress={handleConfirm} style={styles.modalButton}>
-                  <Check size={20} color={theme.colors.trustBlue} weight="light" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={tempDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  textColor={theme.colors.text}
-                  style={styles.iosPicker}
-                />
-              </View>
-            </View>
+          <View style={styles.pickerContainer}>
+            <DateTimePicker
+              value={tempDate}
+              mode="date"
+              display="spinner"
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+              textColor={theme.colors.text}
+              style={styles.iosPicker}
+            />
           </View>
-        </Modal>
+        </BaseBottomSheet>
       )}
     </View>
   );
@@ -208,13 +206,13 @@ export default function DateInput({
 function getStyles(theme: any, error?: string, disabled?: boolean) {
   return StyleSheet.create({
     container: {
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.lg, // 24px spacing between inputs
     },
     label: {
-      ...theme.typography.subtitle1,
+      ...theme.typography.bodyMedium,
       color: theme.colors.text,
       fontWeight: '500',
-      marginBottom: theme.spacing.xs,
+      marginBottom: 8, // 8px spacing between title and input
     },
     required: {
       color: theme.colors.alertRed,
@@ -225,7 +223,7 @@ function getStyles(theme: any, error?: string, disabled?: boolean) {
       borderWidth: 1,
       borderColor: error ? theme.colors.alertRed : theme.colors.border,
       borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding, // 20px padding like Linked Pocket
       paddingVertical: theme.spacing.sm,
       minHeight: 48,
       flexDirection: 'row',
@@ -234,7 +232,7 @@ function getStyles(theme: any, error?: string, disabled?: boolean) {
     },
     dateText: {
       flex: 1,
-      fontSize: 16, // Prevent zoom on iOS
+      ...theme.typography.bodyLarge,
     },
     disabled: {
       opacity: 0.6,
@@ -244,36 +242,8 @@ function getStyles(theme: any, error?: string, disabled?: boolean) {
       color: theme.colors.alertRed,
       marginTop: theme.spacing.xs,
     },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'flex-end',
-    },
-    modalContent: {
-      borderTopLeftRadius: theme.radius.lg,
-      borderTopRightRadius: theme.radius.lg,
-      paddingBottom: theme.spacing.xl,
-      maxHeight: '50%',
-      alignItems: 'center', // Center-align the content
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
-      borderBottomWidth: 1,
-    },
-    modalButton: {
-      padding: theme.spacing.sm,
-      borderRadius: theme.radius.sm,
-    },
-    modalTitle: {
-      ...theme.typography.h4,
-      fontWeight: '600',
-    },
     pickerContainer: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingTop: theme.spacing.md,
     },
     iosPicker: {

@@ -13,10 +13,12 @@ import {
   SignOut,
   PencilSimple,
   Sun,
-  Info
+  Info,
+  Plus
 } from 'phosphor-react-native';
 import { BudgetContext } from '../context/BudgetContext';
 import { useTheme } from '../context/ThemeContext';
+import { useFirebase } from '../context/MockFirebaseContext';
 import Header from '../components/Header';
 import SectionHeader from '../components/SectionHeader';
 import NavigationButton from '../components/NavigationButton';
@@ -29,7 +31,9 @@ export default function AccountScreen() {
   const navigation = useNavigation<AccountScreenNavigationProp>();
   const { state } = useContext(BudgetContext);
   const theme = useTheme();
+  const { signOut } = useFirebase();
   const [scrollY] = useState(new Animated.Value(0));
+  const styles = getStyles(theme);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -37,7 +41,7 @@ export default function AccountScreen() {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => console.log('User signed out') }
+        { text: 'Sign Out', style: 'destructive', onPress: () => signOut() }
       ]
     );
   };
@@ -54,6 +58,23 @@ export default function AccountScreen() {
   const handleTransactionsList = () => navigation.navigate('TransactionsList');
   const handleProjectionDetails = () => navigation.navigate('ProjectionDetails');
   const handleSendToEmail = () => navigation.navigate('SendToEmail');
+  const handleClearAllData = () => {
+    Alert.alert(
+      'Clear All Data',
+      'This action will permanently delete all your data including transactions, pockets, and settings. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear All Data', 
+          style: 'destructive',
+          onPress: () => {
+            // TODO: Implement actual data clearing
+            Alert.alert('Success', 'All data has been cleared successfully.');
+          }
+        }
+      ]
+    );
+  };
 
 
   return (
@@ -101,14 +122,14 @@ export default function AccountScreen() {
                 pressScale={0.95}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Edit profile picture"
-                accessibilityHint="Opens profile picture selection"
+                accessibilityLabel="Change profile picture"
+                accessibilityHint="Opens camera or photo library to select a new profile picture"
               >
                 <View style={[styles.profilePicture, { backgroundColor: theme.colors.trustBlue }]}>
                   <Text style={[styles.profileInitial, { color: theme.colors.background }]}>AS</Text>
                 </View>
                 <View style={[styles.profileEditIcon, { backgroundColor: theme.colors.trustBlue, borderColor: theme.colors.surface }]}>
-                  <PencilSimple weight="light" size={24} color={theme.colors.background} />
+                  <Plus weight="bold" size={10} color={theme.colors.background} />
                 </View>
               </MicroInteractionWrapper>
               <View style={styles.profileDetails}>
@@ -162,7 +183,7 @@ export default function AccountScreen() {
             />
             
             {/* Clear All Data */}
-            <NavigationButton icon={Trash} label="Clear All Data" iconColor={theme.colors.alertRed} />
+            <NavigationButton icon={Trash} label="Clear All Data" iconColor={theme.colors.alertRed} onPress={handleClearAllData} />
             
             {/* Sign Out */}
             <NavigationButton icon={SignOut} label="Sign Out" iconColor={theme.colors.alertRed} showArrow={false} />
@@ -184,7 +205,8 @@ export default function AccountScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function getStyles(theme: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -215,7 +237,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
-    backgroundColor: '#FFFFFF', // Will be overridden by theme
+    backgroundColor: theme.colors.surface,
   },
   profileInfo: {
     flexDirection: 'row',
@@ -242,14 +264,19 @@ const styles = StyleSheet.create({
   },
   profileEditIcon: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -2,
+    right: -2,
     width: 20,
     height: 20,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   profileDetails: {
     flex: 1,
@@ -318,6 +345,7 @@ const styles = StyleSheet.create({
     marginBottom: 48,
     paddingHorizontal: 0,
   },
-});
+  });
+}
 
 

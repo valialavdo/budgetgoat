@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Trash, Wallet, Target, Plus, Minus } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useFirebase } from '../context/MockFirebaseContext';
 import { useTranslation } from '../i18n';
 import BaseBottomSheet from './BaseBottomSheet';
-import ActionButton from './ActionButton';
+import Input from './Input';
 import SegmentedControl from './SegmentedControl';
 import ActionRow from './ActionRow';
+import ActionButton from './ActionButton';
 
 interface Pocket {
   id: string;
@@ -54,6 +56,7 @@ export default function PocketBottomSheet({
 }: PocketBottomSheetProps) {
   const theme = useTheme();
   const { t } = useTranslation();
+  const { updatePocket, deletePocket } = useFirebase();
   const styles = getStyles(theme);
   const [editedPocket, setEditedPocket] = useState<Pocket | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -94,17 +97,27 @@ export default function PocketBottomSheet({
     setEditingField(null);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (pocket) {
-      onDelete(pocket.id);
-      onClose();
+      try {
+        await deletePocket(pocket.id);
+        onDelete(pocket.id);
+        onClose();
+      } catch (error) {
+        console.error('Failed to delete pocket:', error);
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editedPocket && hasChanges) {
-      onEdit(editedPocket);
-      setHasChanges(false);
+      try {
+        await updatePocket(editedPocket.id, editedPocket);
+        onEdit(editedPocket);
+        setHasChanges(false);
+      } catch (error) {
+        console.error('Failed to update pocket:', error);
+      }
     }
   };
 
@@ -178,179 +191,152 @@ export default function PocketBottomSheet({
   if (!pocket) return null;
 
   return (
-    <BaseBottomSheet
-      visible={visible}
-      onClose={onClose}
-      title={editedPocket?.name ? `${editedPocket.name}` : 'Pocket Details'}
-      headerRightIcon={<Trash size={24} color={theme.colors.alertRed} weight="light" />}
-      onHeaderRightPress={handleDelete}
-      showActionButtons={true}
-      actionButtonText="Save Changes"
-      onActionButtonPress={handleSave}
-      cancelButtonText="Cancel"
-      onCancelButtonPress={handleCancel}
-    >
+    <>
+      <BaseBottomSheet
+        visible={visible}
+        onClose={onClose}
+        title={editedPocket?.name ? `${editedPocket.name}` : 'Pocket Details'}
+        headerRightIcon={<Trash size={24} color={theme.colors.alertRed} weight="light" />}
+        onHeaderRightPress={handleDelete}
+      actionButtons={[
+        {
+          title: 'Cancel',
+          onPress: handleCancel,
+          variant: 'secondary',
+        },
+        {
+          title: 'Save Changes',
+          onPress: handleSave,
+          variant: 'primary',
+        },
+      ]}
+      >
+        {/* Content */}
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.previewContainer}>
+            
+            {/* Name */}
+            <Input
+              label="Name"
+              value={editedPocket?.name || ''}
+              onChangeText={(text) => handleFieldChange('name', text)}
+              placeholder="Pocket name"
+              type="text"
+            />
 
-          {/* Content */}
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            <View style={styles.previewContainer}>
-              
-              {/* Name */}
-              <PreviewField
-                label="Name"
-                value={editedPocket?.name || ''}
-                field="name"
-                isEditing={editingField === 'name'}
-              >
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editedPocket?.name || ''}
-                  onChangeText={(text) => handleFieldChange('name', text)}
-                  onBlur={handleFieldBlur}
-                  placeholder="Pocket name"
-                  autoFocus
-                />
-              </PreviewField>
+            {/* Description */}
+            <Input
+              label="Description"
+              value={editedPocket?.description || ''}
+              onChangeText={(text) => handleFieldChange('description', text)}
+              placeholder="Description"
+              type="multiline"
+            />
 
-              {/* Description */}
-              <PreviewField
-                label="Description"
-                value={editedPocket?.description || ''}
-                field="description"
-                isEditing={editingField === 'description'}
-              >
-                <TextInput
-                  style={[styles.fieldInput, styles.multilineInput]}
-                  value={editedPocket?.description || ''}
-                  onChangeText={(text) => handleFieldChange('description', text)}
-                  onBlur={handleFieldBlur}
-                  placeholder="Description"
-                  multiline
-                  numberOfLines={3}
-                  autoFocus
-                />
-              </PreviewField>
-
-              {/* Type Selection */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.fieldLabel}>Type</Text>
-                <SegmentedControl
-                  options={[
-                    {
-                      value: 'standard',
-                      label: 'Standard',
-                      icon: <Wallet />
-                    },
-                    {
-                      value: 'goal',
-                      label: 'Goal Oriented',
-                      icon: <Target />
-                    }
-                  ]}
-                  selectedValue={editedPocket?.type || 'standard'}
-                  onValueChange={(value) => handleFieldChange('type', value)}
-                  size="small"
-                />
-              </View>
-
-              {/* Current Balance */}
-              <PreviewField
-                label="Current Balance"
-                value={editedPocket?.currentBalance ? `€${editedPocket.currentBalance.toLocaleString()}` : ''}
-                field="currentBalance"
-                isEditing={editingField === 'currentBalance'}
-              >
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editedPocket?.currentBalance ? String(editedPocket.currentBalance) : ''}
-                  onChangeText={(text) => {
-                    const num = parseFloat(text) || 0;
-                    handleFieldChange('currentBalance', num);
-                  }}
-                  onBlur={handleFieldBlur}
-                  placeholder="0"
-                  keyboardType="numeric"
-                  autoFocus
-                />
-              </PreviewField>
-
-              {/* Target Amount (only for goal type) */}
-              {editedPocket?.type === 'goal' && (
-                <PreviewField
-                  label="Target Amount"
-                  value={editedPocket?.targetAmount ? `€${editedPocket.targetAmount.toLocaleString()}` : ''}
-                  field="targetAmount"
-                  isEditing={editingField === 'targetAmount'}
-                >
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editedPocket?.targetAmount ? String(editedPocket.targetAmount) : ''}
-                    onChangeText={(text) => {
-                      const num = parseFloat(text) || 0;
-                      handleFieldChange('targetAmount', num);
-                    }}
-                    onBlur={handleFieldBlur}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    autoFocus
-                  />
-                </PreviewField>
-              )}
-
-              {/* Linked Transactions */}
-              <View style={styles.transactionsSection}>
-                <View style={styles.transactionsHeader}>
-                  <Text style={styles.transactionsTitle}>Linked Transactions</Text>
-                  <ActionButton
-                    title={t('common.add')}
-                    onPress={handleAddTransaction}
-                    variant="primary"
-                    size="small"
-                    icon={<Plus size={16} color={theme.colors.background} weight="light" />}
-                    accessibilityLabel={t('common.add')}
-                  />
-                </View>
-                
-                {pocketTransactions.length > 0 ? (
-                  pocketTransactions.map((transaction) => (
-                    <View key={transaction.id} style={styles.transactionItem}>
-                      <View style={styles.transactionContent}>
-                        <View style={styles.transactionLeft}>
-                          <Text style={styles.transactionTitle}>{transaction.title}</Text>
-                          <Text style={styles.transactionSubtitle}>{transaction.subtitle}</Text>
-                        </View>
-                        <View style={styles.transactionRight}>
-                          <Text style={[
-                            styles.transactionAmount,
-                            { color: transaction.amount > 0 ? theme.colors.goatGreen : theme.colors.alertRed }
-                          ]}>
-                            {transaction.amount > 0 ? '+' : ''}€{Math.abs(transaction.amount).toLocaleString()}
-                          </Text>
-                          <Text style={styles.transactionDate}>{transaction.date}</Text>
-                        </View>
-                      </View>
-                      <TouchableOpacity 
-                        onPress={() => handleRemoveTransaction(transaction.id)}
-                        style={styles.removeTransactionButton}
-                        accessible={true}
-                        accessibilityRole="button"
-                        accessibilityLabel="Remove transaction"
-                      >
-                        <Minus size={14} color={theme.colors.alertRed} weight="light" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                ) : (
-                  <View style={styles.emptyTransactions}>
-                    <Text style={styles.emptyTransactionsText}>No transactions linked yet</Text>
-                    <Text style={styles.emptyTransactionsSubtext}>Tap + Add to link a transaction</Text>
-                  </View>
-                )}
-              </View>
-
+            {/* Type Selection */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>Type</Text>
+              <SegmentedControl
+                options={[
+                  {
+                    value: 'standard',
+                    label: 'Standard',
+                    icon: <Wallet />
+                  },
+                  {
+                    value: 'goal',
+                    label: 'Goal Oriented',
+                    icon: <Target />
+                  }
+                ]}
+                selectedValue={editedPocket?.type || 'standard'}
+                onValueChange={(value) => handleFieldChange('type', value)}
+                size="small"
+              />
             </View>
-          </ScrollView>
-    </BaseBottomSheet>
+
+            {/* Current Balance */}
+            <Input
+              label="Current Balance"
+              value={editedPocket?.currentBalance ? String(editedPocket.currentBalance) : ''}
+              onChangeText={(text) => {
+                const num = parseFloat(text) || 0;
+                handleFieldChange('currentBalance', num);
+              }}
+              placeholder="0"
+              type="number"
+            />
+
+            {/* Target Amount (only for goal type) */}
+            {editedPocket?.type === 'goal' && (
+              <Input
+                label="Target Amount"
+                value={editedPocket?.targetAmount ? String(editedPocket.targetAmount) : ''}
+                onChangeText={(text) => {
+                  const num = parseFloat(text) || 0;
+                  handleFieldChange('targetAmount', num);
+                }}
+                placeholder="0"
+                type="number"
+              />
+            )}
+
+            {/* Linked Transactions */}
+            <View style={styles.transactionsSection}>
+              <View style={styles.transactionsHeader}>
+                <Text style={styles.transactionsTitle}>Linked Transactions</Text>
+                <ActionButton
+                  title={t('common.add')}
+                  onPress={handleAddTransaction}
+                  variant="primary"
+                  size="small"
+                  icon={<Plus size={16} color={theme.colors.background} weight="light" />}
+                  accessibilityLabel={t('common.add')}
+                />
+              </View>
+              
+              {pocketTransactions.length > 0 ? (
+                pocketTransactions.map((transaction) => (
+                  <View key={transaction.id} style={styles.transactionItem}>
+                    <View style={styles.transactionContent}>
+                      <View style={styles.transactionLeft}>
+                        <Text style={styles.transactionTitle}>{transaction.title}</Text>
+                        <Text style={styles.transactionSubtitle}>{transaction.subtitle}</Text>
+                      </View>
+                      <View style={styles.transactionRight}>
+                        <Text style={[
+                          styles.transactionAmount,
+                          { color: transaction.amount > 0 ? theme.colors.goatGreen : theme.colors.alertRed }
+                        ]}>
+                          {transaction.amount > 0 ? '+' : ''}€{Math.abs(transaction.amount).toLocaleString()}
+                        </Text>
+                        <Text style={styles.transactionDate}>{transaction.date}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => handleRemoveTransaction(transaction.id)}
+                      style={styles.removeTransactionButton}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove transaction"
+                    >
+                      <Minus size={14} color={theme.colors.alertRed} weight="light" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTransactions}>
+                  <Text style={styles.emptyTransactionsText}>No transactions linked yet</Text>
+                  <Text style={styles.emptyTransactionsSubtext}>Tap + Add to link a transaction</Text>
+                </View>
+              )}
+            </View>
+
+          </View>
+        </ScrollView>
+      </BaseBottomSheet>
+
+    </>
   );
 }
 
@@ -361,20 +347,21 @@ function getStyles(theme: any) {
       paddingVertical: theme.spacing.md,
     },
     previewContainer: {
-      gap: theme.spacing.lg,
+      gap: 0, // Remove gap since Input components handle their own spacing
     },
     fieldContainer: {
-      gap: theme.spacing.sm,
+      marginBottom: theme.spacing.lg, // 24px spacing to match Input components
     },
     fieldLabel: {
-      ...theme.typography.bodyMedium,
+      fontSize: 14,
       color: theme.colors.text,
       fontWeight: '600',
+      marginBottom: 8, // 8px spacing between title and input
     },
     fieldValue: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingVertical: theme.spacing.md,
       borderWidth: 1,
       borderColor: theme.colors.borderLight,
@@ -461,7 +448,7 @@ function getStyles(theme: any) {
     },
     addTransactionButton: {
       backgroundColor: theme.colors.trustBlue,
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingVertical: theme.spacing.sm,
       borderRadius: theme.radius.md,
       flexDirection: 'row',

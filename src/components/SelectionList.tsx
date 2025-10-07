@@ -7,6 +7,7 @@ export interface SelectionListOption {
   value: string;
   label: string;
   description?: string;
+  icon?: React.ReactNode;
 }
 
 export interface SelectionListProps {
@@ -16,14 +17,19 @@ export interface SelectionListProps {
   options: SelectionListOption[];
   
   /**
-   * Currently selected value
+   * Currently selected value(s) - string for single selection, string[] for multiple
    */
-  selectedValue: string;
+  selectedValue: string | string[];
   
   /**
    * Callback when selection changes
    */
-  onSelectionChange: (value: string) => void;
+  onSelectionChange: (value: string | string[]) => void;
+  
+  /**
+   * Selection type - 'single' for radio button behavior, 'multiple' for checkbox behavior
+   */
+  selectionType?: 'single' | 'multiple';
   
   /**
    * Custom styles for the container
@@ -57,48 +63,79 @@ export default function SelectionList({
   options,
   selectedValue,
   onSelectionChange,
+  selectionType = 'single',
   style,
 }: SelectionListProps) {
   const theme = useTheme();
   const styles = getStyles(theme);
 
+  const handleSelection = (value: string) => {
+    if (selectionType === 'multiple') {
+      const currentValues = Array.isArray(selectedValue) ? selectedValue : [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value];
+      onSelectionChange(newValues);
+    } else {
+      onSelectionChange(value);
+    }
+  };
+
+  const isSelected = (value: string) => {
+    if (selectionType === 'multiple') {
+      return Array.isArray(selectedValue) && selectedValue.includes(value);
+    }
+    return selectedValue === value;
+  };
+
   return (
     <View style={[styles.container, style]}>
       {options.map((option) => {
-        const isSelected = selectedValue === option.value;
+        const optionIsSelected = isSelected(option.value);
         
         return (
           <TouchableOpacity
             key={option.value}
             style={[
               styles.option,
-              isSelected && styles.optionSelected,
+              optionIsSelected && styles.optionSelected,
             ]}
-            onPress={() => onSelectionChange(option.value)}
+            onPress={() => handleSelection(option.value)}
             accessible={true}
-            accessibilityRole="radio"
+            accessibilityRole={selectionType === 'multiple' ? 'checkbox' : 'radio'}
             accessibilityLabel={option.label}
-            accessibilityState={{ selected: isSelected }}
+            accessibilityState={{ selected: optionIsSelected }}
             accessibilityHint={option.description}
           >
             <View style={styles.optionContent}>
-              <Text style={[
-                styles.optionLabel,
-                isSelected && styles.optionLabelSelected,
-              ]}>
-                {option.label}
-              </Text>
-              {option.description && (
-                <Text style={[
-                  styles.optionDescription,
-                  isSelected && styles.optionDescriptionSelected,
-                ]}>
-                  {option.description}
-                </Text>
+              {option.icon && (
+                <View style={styles.iconContainer}>
+                  {React.cloneElement(option.icon as React.ReactElement, {
+                    size: 20,
+                    color: optionIsSelected ? theme.colors.trustBlue : theme.colors.textMuted,
+                    weight: 'light'
+                  } as any)}
+                </View>
               )}
+              <View style={styles.textContainer}>
+                <Text style={[
+                  styles.optionLabel,
+                  optionIsSelected && styles.optionLabelSelected,
+                ]}>
+                  {option.label}
+                </Text>
+                {option.description && (
+                  <Text style={[
+                    styles.optionDescription,
+                    optionIsSelected && styles.optionDescriptionSelected,
+                  ]}>
+                    {option.description}
+                  </Text>
+                )}
+              </View>
             </View>
             
-            {isSelected && (
+            {optionIsSelected && (
               <Check 
                 size={20} 
                 color={theme.colors.trustBlue} 
@@ -115,42 +152,55 @@ export default function SelectionList({
 function getStyles(theme: any) {
   return StyleSheet.create({
     container: {
-      gap: theme.spacing.xs,
+      gap: theme.spacing.sm,
     },
     option: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding, // 20px padding like Linked Pocket
       paddingVertical: theme.spacing.md,
       borderRadius: theme.radius.md,
       borderWidth: 1,
       borderColor: theme.colors.borderLight,
-      backgroundColor: theme.colors.background,
+      backgroundColor: theme.colors.surface, // Use surface color like Linked Pocket
+      minHeight: 64, // Match Linked Pocket height
     },
     optionSelected: {
       borderColor: theme.colors.trustBlue,
-      backgroundColor: theme.colors.trustBlue + '15', // Transparent blue background for selected
+      backgroundColor: theme.colors.trustBlue + '10', // Light blue background for selected
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.trustBlue,
     },
     optionContent: {
       flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+    },
+    iconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    textContainer: {
+      flex: 1,
     },
     optionLabel: {
-      ...theme.typography.bodyMedium,
+      ...theme.typography.bodyLarge,
       color: theme.colors.text,
-      fontWeight: '500',
-      marginBottom: theme.spacing.xs,
+      fontWeight: '600',
+      marginBottom: 2,
     },
     optionLabelSelected: {
       color: theme.colors.trustBlue,
       fontWeight: '600',
     },
     optionDescription: {
-      ...theme.typography.bodySmall,
+      ...theme.typography.bodyMedium,
       color: theme.colors.textMuted,
     },
     optionDescriptionSelected: {
-      color: theme.colors.trustBlue + 'CC', // Blue with opacity
+      color: theme.colors.textMuted, // Keep description muted even when selected
     },
   });
 }

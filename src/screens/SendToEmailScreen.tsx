@@ -5,15 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  TouchableOpacity,
+  Animated,
 } from 'react-native';
-import { Envelope, PaperPlaneTilt, Receipt, CheckCircle } from 'phosphor-react-native';
+import { Envelope, PaperPlaneTilt, Receipt, Wallet, Target } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useMicroInteractions } from '../context/MicroInteractionsContext';
 import { useNavigation } from '@react-navigation/native';
 import SecondaryHeader from '../components/SecondaryHeader';
-import FormInput from '../components/FormInput';
+import Input from '../components/Input';
 import ActionButton from '../components/ActionButton';
+import SelectionOption from '../components/SelectionOption';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SuccessAnimation from '../components/SuccessAnimation';
 
@@ -58,6 +59,7 @@ export default function SendToEmailScreen() {
   
   const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [scrollY] = useState(new Animated.Value(0));
   const [errors, setErrors] = useState<Partial<EmailData>>({});
 
   const handleBack = () => {
@@ -127,9 +129,9 @@ export default function SendToEmailScreen() {
   };
 
   const dataTypes = [
-    { key: 'includeTransactions', label: 'Transactions', description: 'All transaction history' },
-    { key: 'includePockets', label: 'Pockets', description: 'Pocket balances and details' },
-    { key: 'includeReports', label: 'Reports', description: 'Spending analytics and insights' },
+    { key: 'includeTransactions', label: 'Transactions', description: 'All transaction history', icon: Receipt },
+    { key: 'includePockets', label: 'Pockets', description: 'Pocket balances and details', icon: Wallet },
+    { key: 'includeReports', label: 'Reports', description: 'Spending analytics and insights', icon: Target },
   ];
 
   const styles = getStyles(theme);
@@ -139,44 +141,45 @@ export default function SendToEmailScreen() {
       <SecondaryHeader 
         title="Send to Email" 
         onBackPress={handleBack}
+        scrollY={scrollY}
       />
       
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Email Form */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Email Details
-          </Text>
-          
-          <FormInput
+          <Input
             label="Recipient Email"
             placeholder="Enter email address"
             value={emailData.email}
             onChangeText={(text) => updateEmailData('email', text)}
-            keyboardType="email-address"
-            required={true}
+            type="text"
             error={errors.email}
           />
 
-          <FormInput
+          <Input
             label="Subject"
             placeholder="Email subject"
             value={emailData.subject}
             onChangeText={(text) => updateEmailData('subject', text)}
-            required={true}
+            type="text"
             error={errors.subject}
           />
 
-          <FormInput
+          <Input
             label="Message"
             placeholder="Email message"
             value={emailData.message}
             onChangeText={(text) => updateEmailData('message', text)}
-            multiline={true}
+            type="multiline"
             numberOfLines={4}
           />
         </View>
@@ -189,45 +192,14 @@ export default function SendToEmailScreen() {
           
           <View style={styles.optionsList}>
             {dataTypes.map((dataType) => (
-              <TouchableOpacity
+              <SelectionOption
                 key={dataType.key}
-                style={[
-                  styles.optionItem,
-                  emailData[dataType.key as keyof EmailData] && styles.optionItemSelected
-                ]}
+                title={dataType.label}
+                subtitle={dataType.description}
+                icon={<dataType.icon size={20} weight="light" />}
+                selected={emailData[dataType.key as keyof EmailData]}
                 onPress={() => updateEmailData(dataType.key as keyof EmailData, !emailData[dataType.key as keyof EmailData])}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={`${emailData[dataType.key as keyof EmailData] ? 'Deselect' : 'Select'} ${dataType.label}`}
-                accessibilityHint={dataType.description}
-              >
-                <View style={styles.optionInfo}>
-                  <Receipt 
-                    size={24} 
-                    color={emailData[dataType.key as keyof EmailData] ? theme.colors.trustBlue : theme.colors.textMuted} 
-                    weight="light" 
-                  />
-                  <View style={styles.optionDetails}>
-                    <Text style={[
-                      styles.optionLabel,
-                      emailData[dataType.key as keyof EmailData] && styles.optionLabelSelected
-                    ]}>
-                      {dataType.label}
-                    </Text>
-                    <Text style={styles.optionDescription}>
-                      {dataType.description}
-                    </Text>
-                  </View>
-                </View>
-                
-                {emailData[dataType.key as keyof EmailData] && (
-                  <CheckCircle 
-                    size={24} 
-                    color={theme.colors.trustBlue} 
-                    weight="light" 
-                  />
-                )}
-              </TouchableOpacity>
+              />
             ))}
           </View>
         </View>
@@ -281,11 +253,10 @@ function getStyles(theme: any) {
     },
     scrollContent: {
       paddingHorizontal: theme.spacing.screenPadding,
-      paddingTop: theme.spacing.lg,
       paddingBottom: theme.spacing.xxl,
     },
     section: {
-      marginBottom: theme.spacing.xl,
+      marginBottom: theme.spacing.lg,
     },
     sectionTitle: {
     ...theme.typography.bodyLarge,
@@ -294,43 +265,6 @@ function getStyles(theme: any) {
   },
   optionsList: {
     // No background as per ExportDataScreen pattern
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    minHeight: 64,
-  },
-  optionItemSelected: {
-    backgroundColor: theme.colors.trustBlue + '10',
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.trustBlue,
-  },
-  optionInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: theme.spacing.md,
-  },
-  optionDetails: {
-    flex: 1,
-  },
-  optionLabel: {
-    ...theme.typography.bodyLarge,
-    color: theme.colors.text,
-    fontWeight: '600',
-  },
-  optionLabelSelected: {
-    color: theme.colors.trustBlue,
-  },
-  optionDescription: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
     dataTypeItem: {
       flexDirection: 'row',

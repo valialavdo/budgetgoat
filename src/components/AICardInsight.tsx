@@ -36,7 +36,7 @@ export default function AICardInsight({
           onPress={() => onDismiss(id)}
           activeOpacity={0.7}
         >
-          <X weight="light" size={16} color={Colors.textMuted} />
+          <X weight="light" size={16} color={theme.colors.textMuted} />
         </TouchableOpacity>
         
         <View style={styles.content}>

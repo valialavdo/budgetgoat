@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { MagnifyingGlass, Funnel, X } from 'phosphor-react-native';
-import { Colors, Spacing, Radius, Typography } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface SearchBarWithFilterProps {
   searchQuery: string;
@@ -16,18 +16,21 @@ export default function SearchBarWithFilter({
   onFilterPress,
   placeholder = "Search...",
 }: SearchBarWithFilterProps) {
+  const theme = useTheme();
+  const styles = getStyles(theme);
+
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
         <MagnifyingGlass 
           weight="light" 
           size={20} 
-          color={Colors.textMuted} 
+          color={theme.colors.textMuted} 
         />
         <TextInput
           style={styles.searchInput}
           placeholder={placeholder}
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={searchQuery}
           onChangeText={onSearchChange}
         />
@@ -37,7 +40,7 @@ export default function SearchBarWithFilter({
             style={styles.clearButton}
             activeOpacity={0.7}
           >
-            <X size={16} color={Colors.textMuted} weight="light" />
+            <X size={16} color={theme.colors.textMuted} weight="light" />
           </TouchableOpacity>
         )}
       </View>
@@ -48,52 +51,54 @@ export default function SearchBarWithFilter({
         activeOpacity={0.7}
       >
         <View style={styles.filterIconContainer}>
-          <Funnel weight="light" size={20} color={Colors.trustBlue} />
+          <Funnel weight="light" size={20} color={theme.colors.trustBlue} />
         </View>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.screenPadding,
-    marginBottom: Spacing.md,
-    gap: 8,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.xl,
-  },
-  searchInput: {
-    flex: 1,
-    ...Typography.bodyRegular,
-    color: Colors.textMuted,
-    marginLeft: Spacing.sm,
-  },
-  clearButton: {
-    padding: Spacing.xs,
-    marginRight: Spacing.xs,
-  },
-  filterButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 44,
-    minHeight: 44,
-  },
-  filterIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.screenPadding,
+      marginBottom: theme.spacing.md,
+      gap: 8,
+    },
+    searchBar: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radius.xl,
+    },
+    searchInput: {
+      flex: 1,
+      ...theme.typography.bodyRegular,
+      color: theme.colors.textMuted,
+      marginLeft: theme.spacing.sm,
+    },
+    clearButton: {
+      padding: theme.spacing.xs,
+      marginRight: theme.spacing.xs,
+    },
+    filterButton: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      minWidth: 44,
+      minHeight: 44,
+    },
+    filterIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: theme.colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
+}

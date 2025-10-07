@@ -5,14 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar, Check, X } from 'phosphor-react-native';
+import { Calendar } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useMicroInteractions } from '../context/MicroInteractionsContext';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
+import BaseBottomSheet from './BaseBottomSheet';
 
 export interface DatePickerProps {
   /**
@@ -83,7 +82,6 @@ export default function DatePicker({
 }: DatePickerProps) {
   const theme = useTheme();
   const { triggerHaptic } = useMicroInteractions();
-  const insets = useSafeAreaInsets();
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState(value);
 
@@ -123,7 +121,7 @@ export default function DatePicker({
   };
 
   const formattedDate = format(value, 'MMMM dd, yyyy');
-  const styles = getStyles(theme, insets);
+  const styles = getStyles(theme);
 
   return (
     <View style={[styles.container, style]}>
@@ -165,37 +163,35 @@ export default function DatePicker({
       </TouchableOpacity>
 
       {showPicker && Platform.OS === 'ios' && (
-        <Modal
-          transparent={true}
-          animationType="slide"
+        <BaseBottomSheet
           visible={showPicker}
-          onRequestClose={handleCancel}
+          onClose={handleCancel}
+          title="Select Date"
+          actionButtons={[
+            {
+              text: 'Cancel',
+              onPress: handleCancel,
+              variant: 'secondary',
+            },
+            {
+              text: 'Confirm',
+              onPress: handleConfirm,
+              variant: 'primary',
+            },
+          ]}
         >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-              <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
-                <TouchableOpacity onPress={handleCancel} style={styles.modalButton}>
-                  <X size={20} color={theme.colors.text} weight="light" />
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Select Date</Text>
-                <TouchableOpacity onPress={handleConfirm} style={styles.modalButton}>
-                  <Check size={20} color={theme.colors.trustBlue} weight="light" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.pickerContainer}>
-                <DateTimePicker
-                  value={tempDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  textColor={theme.colors.text}
-                  style={styles.iosPicker}
-                />
-              </View>
-            </View>
+          <View style={styles.pickerContainer}>
+            <DateTimePicker
+              value={tempDate}
+              mode="date"
+              display="spinner"
+              onChange={handleDateChange}
+              maximumDate={new Date()}
+              textColor={theme.colors.text}
+              style={styles.iosPicker}
+            />
           </View>
-        </Modal>
+        </BaseBottomSheet>
       )}
       
       {showPicker && Platform.OS === 'android' && (
@@ -212,7 +208,7 @@ export default function DatePicker({
   );
 }
 
-function getStyles(theme: any, insets: any) {
+function getStyles(theme: any) {
   return StyleSheet.create({
     container: {
       marginBottom: theme.spacing.lg,
@@ -243,36 +239,8 @@ function getStyles(theme: any, insets: any) {
       height: 200,
       marginTop: theme.spacing.md,
     },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'flex-end',
-    },
-    modalContent: {
-      borderTopLeftRadius: theme.radius.lg,
-      borderTopRightRadius: theme.radius.lg,
-      paddingBottom: Math.max(insets.bottom, theme.spacing.xl),
-      maxHeight: '50%',
-      alignItems: 'center', // Center-align the content
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
-      borderBottomWidth: 1,
-    },
-    modalButton: {
-      padding: theme.spacing.sm,
-      borderRadius: theme.radius.sm,
-    },
-    modalTitle: {
-      ...theme.typography.h4,
-      fontWeight: '600',
-    },
     pickerContainer: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingTop: theme.spacing.md,
     },
   });

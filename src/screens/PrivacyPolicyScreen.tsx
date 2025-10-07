@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Image,
+  Animated,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +15,7 @@ import { Shield, Lock, Globe, Envelope } from 'phosphor-react-native';
 export default function PrivacyPolicyScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
+  const [scrollY] = useState(new Animated.Value(0));
   const styles = getStyles(theme);
 
   const handleBack = () => {
@@ -25,11 +27,17 @@ export default function PrivacyPolicyScreen() {
       <SecondaryHeader
         title="Privacy Policy"
         onBackPress={handleBack}
+        scrollY={scrollY}
       />
       
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
         {/* Main Illustration */}
         <View style={styles.illustrationContainer}>
@@ -184,7 +192,6 @@ const getStyles = (theme: any) => StyleSheet.create({
   illustrationContainer: {
     alignItems: 'center',
     marginBottom: theme.spacing.xl,
-    marginTop: theme.spacing.lg,
   },
   illustration: {
     position: 'relative',

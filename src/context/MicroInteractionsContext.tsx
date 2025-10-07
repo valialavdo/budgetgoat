@@ -37,6 +37,9 @@ export function MicroInteractionsProvider({ children }: MicroInteractionsProvide
       }
     } catch (error) {
       console.warn('Failed to load microinteractions preferences:', error);
+      // Fallback to default values if AsyncStorage fails
+      setHapticEnabled(true);
+      setAnimationsEnabled(true);
     }
   };
 

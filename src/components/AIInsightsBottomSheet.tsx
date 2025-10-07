@@ -111,7 +111,6 @@ export default function AIInsightsBottomSheet({
       visible={visible}
       onClose={onClose}
       title="AI Insights"
-      maxHeight="90%"
     >
       <View style={styles.introSection}>
         <Text style={[styles.introTitle, { color: theme.colors.text }]}>
@@ -292,7 +291,7 @@ function getStyles(theme: any, insets: any) {
       ...theme.typography.bodySmall,
     },
     insightDetails: {
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingBottom: theme.spacing.md,
       borderTopWidth: 1,
       borderTopColor: theme.colors.borderLight,
@@ -317,7 +316,7 @@ function getStyles(theme: any, insets: any) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      paddingHorizontal: theme.spacing.md,
+      paddingHorizontal: theme.spacing.screenPadding,
       paddingVertical: theme.spacing.sm,
       borderRadius: theme.radius.sm,
       borderWidth: 1,

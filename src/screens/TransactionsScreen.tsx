@@ -2,14 +2,23 @@ import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { BudgetContext } from '../context/BudgetContext';
+// import { useTransactions, usePockets } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import { Plus, Link, LinkBreak } from 'phosphor-react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import Header from '../components/Header';
 import SearchBarWithFilter from '../components/SearchBarWithFilter';
 import PocketsListItem from '../components/PocketsListItem';
-import FiltersModal from '../components/FiltersModal';
-import TransactionBottomSheet from '../components/TransactionBottomSheet';
-import { FilterOptions } from '../components/FiltersModal';
+import FiltersBottomSheet from '../components/FiltersBottomSheet';
+import NewTransactionBottomSheet from '../components/NewTransactionBottomSheet';
+// import { FilterOptions } from '../components/FiltersModal'; // Deleted
+
+type FilterOptions = {
+  sortBy?: string;
+  sortOrder?: string;
+  dateRange?: string;
+  type?: string;
+  pocket?: string;
+};
 
 type RouteParams = {
   initialFilters?: FilterOptions;
@@ -19,6 +28,46 @@ export default function TransactionsScreen() {
   const route = useRoute<RouteProp<{ Transactions: RouteParams }, 'Transactions'>>();
   const theme = useTheme();
   const { state, addTransaction } = useContext(BudgetContext);
+  // Mock data for Expo Go compatibility
+  const firebaseTransactions = [
+    {
+      id: '1',
+      title: 'Coffee Shop',
+      amount: '4.50',
+      type: 'expense',
+      date: '2024-01-15',
+      linkedPocketId: '1',
+      isRecurring: false,
+    },
+    {
+      id: '2',
+      title: 'Salary',
+      amount: '3000',
+      type: 'income', 
+      date: '2024-01-14',
+      linkedPocketId: '1',
+      isRecurring: true,
+    }
+  ];
+  const firebasePockets = [
+    {
+      id: '1',
+      name: 'Emergency Fund',
+      type: 'standard',
+      currentBalance: 2500,
+      targetAmount: 0,
+      transactionCount: 5,
+    },
+    {
+      id: '2', 
+      name: 'Vacation',
+      type: 'goal',
+      currentBalance: 800,
+      targetAmount: 2000,
+      transactionCount: 3,
+    }
+  ];
+  const transactionsLoading = false;
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [scrollY] = useState(new Animated.Value(0));
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,28 +89,25 @@ export default function TransactionsScreen() {
 
   // Convert real transactions from state to display format
   const transactions = useMemo(() => {
-    const allTransactions = Object.values(state.transactionsByMonth || {}).flat();
-    
-    return allTransactions.map(tx => {
-      const category = state.categories.find(cat => cat.id === tx.pocketCategoryId);
-      const pocketCategory = state.categories.find(cat => cat.id === tx.pocketCategoryId && !cat.isInflux);
+    return firebaseTransactions.map(tx => {
+      const linkedPocket = firebasePockets.find(pocket => pocket.id === tx.linkedPocketId);
       
       return {
         id: tx.id,
-        title: tx.note || 'Transaction',
-        subtitle: category?.name || 'Unknown Category',
-        amount: tx.amount,
+        title: tx.title,
+        subtitle: tx.description || 'Transaction',
+        amount: parseFloat(tx.amount) * (tx.type === 'income' ? 1 : -1),
         type: tx.type,
-        category: category?.name || 'Unknown',
-        date: tx.month + '-01', // Convert month key to date format
-        isRecurring: tx.recurrence?.isRecurring || false,
+        category: linkedPocket?.name || 'Uncategorized',
+        date: tx.date,
+        isRecurring: tx.isRecurring || false,
         pocketInfo: {
-          name: pocketCategory?.name,
-          isLinked: !!pocketCategory
+          name: linkedPocket?.name,
+          isLinked: !!linkedPocket
         }
       };
     });
-  }, [state.transactionsByMonth, state.categories]);
+  }, [firebaseTransactions, firebasePockets]);
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -228,30 +274,19 @@ export default function TransactionsScreen() {
 
 
 
-      <FiltersModal
+      <FiltersBottomSheet
         visible={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
-        onApply={handleFiltersApply}
-        currentFilters={filters}
+        filters={filters}
+        onFiltersChange={handleFiltersApply}
       />
 
-      <TransactionBottomSheet
-        visible={showTransactionSheet}
-        onClose={() => {
-          setShowTransactionSheet(false);
-          setSelectedTransaction(null);
-        }}
-        transaction={selectedTransaction}
-        onEdit={handleEditTransaction}
-        onDelete={handleDeleteTransaction}
-      />
 
-      <TransactionBottomSheet
+      <NewTransactionBottomSheet
         visible={showAddTransactionSheet}
         onClose={() => setShowAddTransactionSheet(false)}
-        transaction={null}
-        onEdit={handleSaveNewTransaction}
-        onDelete={() => {}}
+        onSave={handleSaveNewTransaction}
+        pockets={firebasePockets}
       />
     </View>
   );

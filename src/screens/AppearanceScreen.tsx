@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 import SecondaryHeader from '../components/SecondaryHeader';
-import { ArrowLeft, Sun, Moon, Monitor } from 'phosphor-react-native';
+import { ArrowLeft, Sun, Moon, Monitor, RadioButton } from 'phosphor-react-native';
 import MicroInteractionWrapper from '../components/MicroInteractionWrapper';
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -13,6 +13,7 @@ export default function AppearanceScreen() {
   const theme = useTheme();
   const styles = getStyles(theme);
   const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(theme.themeMode);
+  const [scrollY] = useState(new Animated.Value(0));
 
   // Update selected theme when theme context changes
   useEffect(() => {
@@ -61,9 +62,18 @@ export default function AppearanceScreen() {
       <SecondaryHeader 
         title="Appearance" 
         onBackPress={handleBack}
+        scrollY={scrollY}
       />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
         <View style={styles.content}>
           {/* Theme Selection Section */}
           <View style={styles.section}>
@@ -120,18 +130,11 @@ export default function AppearanceScreen() {
                         </Text>
                       </View>
                     </View>
-                    <View style={[
-                      styles.radioButton,
-                      isSelected && styles.radioButtonSelected,
-                      { borderColor: theme.colors.borderLight }
-                    ]}>
-                      {isSelected && (
-                        <View style={[
-                          styles.radioButtonInner,
-                          { backgroundColor: theme.colors.trustBlue }
-                        ]} />
-                      )}
-                    </View>
+                    <RadioButton 
+                      size={28} 
+                      weight="light"
+                      color={isSelected ? theme.colors.trustBlue : theme.colors.borderLight}
+                    />
                   </View>
                 </MicroInteractionWrapper>
               );
@@ -154,8 +157,7 @@ function getStyles(theme: any) {
       flex: 1,
     },
     content: {
-      paddingHorizontal: theme.spacing.screenPadding,
-      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.lg,
     },
     section: {
       marginBottom: theme.spacing.xl,
@@ -211,22 +213,6 @@ function getStyles(theme: any) {
     themeOptionSubtitle: {
       ...theme.typography.bodySmall,
       lineHeight: 16,
-    },
-    radioButton: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      borderWidth: 2,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    radioButtonSelected: {
-      borderColor: theme.colors.trustBlue,
-    },
-    radioButtonInner: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
     },
   });
 }

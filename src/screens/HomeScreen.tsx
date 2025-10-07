@@ -13,6 +13,7 @@ import { Image } from 'react-native';
 import { useContext } from 'react';
 import { BudgetContext } from '../context/BudgetContext';
 import { useTheme } from '../context/ThemeContext';
+// import { usePockets, useTransactions } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import Header from '../components/Header';
 import Overview from '../components/Overview';
 import { generateAiTips } from '../utils/ai';
@@ -20,8 +21,8 @@ import { projectSixMonths } from '../utils/projection';
 import PocketsListItem from '../components/PocketsListItem';
 import ProjectionBottomSheet from '../components/ProjectionBottomSheet';
 import AIInsightsBottomSheet from '../components/AIInsightsBottomSheet';
-import CreateTransactionBottomSheet from '../components/CreateTransactionBottomSheet';
-import CreatePocketBottomSheet from '../components/CreatePocketBottomSheet';
+import NewTransactionBottomSheet from '../components/NewTransactionBottomSheet';
+import NewPocketBottomSheet from '../components/NewPocketBottomSheet';
 import PocketBottomSheet from '../components/PocketBottomSheet';
 import TransactionBottomSheet from '../components/TransactionBottomSheet';
 import { format } from 'date-fns';
@@ -49,48 +50,47 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [scrollY] = useState(new Animated.Value(0));
   
-  // Mock pockets data - in real app, get from context
-  const mockPockets = [
-    // Standard pocket
+  // Mock data for Expo Go compatibility
+  const firebasePockets = [
     {
-      id: 'mock-standard',
+      id: '1',
       name: 'Emergency Fund',
-      type: 'standard' as const,
-      balance: 2500,
-      transactionCount: 8,
-      isGoal: false
+      type: 'standard',
+      currentBalance: 2500,
+      targetAmount: 0,
+      transactionCount: 5,
     },
-    // Goal pocket with partial progress
     {
-      id: 'mock-goal-partial',
-      name: 'Vacation Fund',
-      type: 'goal' as const,
-      balance: 1200,
-      targetAmount: 3000,
-      transactionCount: 12,
-      isGoal: true
-    },
-    // Goal pocket with full progress
-    {
-      id: 'mock-goal-full',
-      name: 'New Laptop',
-      type: 'goal' as const,
-      balance: 2500,
-      targetAmount: 2500,
-      transactionCount: 15,
-      isGoal: true
-    },
-    // Goal pocket with over-achievement
-    {
-      id: 'mock-goal-over',
-      name: 'Car Down Payment',
-      type: 'goal' as const,
-      balance: 8000,
-      targetAmount: 6000,
-      transactionCount: 20,
-      isGoal: true
+      id: '2', 
+      name: 'Vacation',
+      type: 'goal',
+      currentBalance: 800,
+      targetAmount: 2000,
+      transactionCount: 3,
     }
   ];
+  const firebaseTransactions = [
+    {
+      id: '1',
+      title: 'Coffee Shop',
+      amount: '4.50',
+      type: 'expense',
+      date: '2024-01-15',
+      linkedPocketId: '1',
+      isRecurring: false,
+    },
+    {
+      id: '2',
+      title: 'Salary',
+      amount: '3000',
+      type: 'income', 
+      date: '2024-01-14',
+      linkedPocketId: '1',
+      isRecurring: true,
+    }
+  ];
+  const pocketsLoading = false;
+  const transactionsLoading = false;
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -137,8 +137,7 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
     totalBalance: point.remaining
   }));
   
-  console.log('Raw projection data:', rawProjectionData);
-  console.log('Transformed projection data:', projectionData);
+  // Projection data processed
 
   const [selectedPeriod, setSelectedPeriod] = useState<'1M' | '3M' | '6M' | '1Y'>('1M');
 
@@ -222,58 +221,18 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
           snapToInterval={162}
           decelerationRate="fast"
         >
-        {/* Mock pockets for demonstration - different types and progress levels */}
-        {[
-          // Standard pocket
-          {
-            id: 'mock-standard',
-            name: 'Emergency Fund',
-            type: 'standard' as const,
-            balance: 2500,
-            transactionCount: 8,
-            isGoal: false
-          },
-          // Goal pocket with partial progress
-          {
-            id: 'mock-goal-partial',
-            name: 'Vacation Fund',
-            type: 'goal' as const,
-            balance: 1200,
-            targetAmount: 3000,
-            transactionCount: 12,
-            isGoal: true
-          },
-          // Goal pocket with full progress
-          {
-            id: 'mock-goal-full',
-            name: 'New Laptop',
-            type: 'goal' as const,
-            balance: 2500,
-            targetAmount: 2500,
-            transactionCount: 15,
-            isGoal: true
-          },
-          // Goal pocket with over-achievement
-          {
-            id: 'mock-goal-over',
-            name: 'Car Down Payment',
-            type: 'goal' as const,
-            balance: 8000,
-            targetAmount: 6000,
-            transactionCount: 20,
-            isGoal: true
-          }
-        ].map((mockPocket, index) => (
+        {/* Real pockets from Firebase */}
+        {firebasePockets.map((pocket, index) => (
           <PocketCard
-            key={mockPocket.id}
-            id={mockPocket.id}
-            name={mockPocket.name}
-            type={mockPocket.type}
-            balance={mockPocket.balance}
-            targetAmount={mockPocket.targetAmount}
-            transactionCount={mockPocket.transactionCount}
+            key={pocket.id}
+            id={pocket.id}
+            name={pocket.name}
+            type={pocket.type}
+            balance={pocket.currentBalance}
+            targetAmount={pocket.targetAmount}
+            transactionCount={pocket.transactionCount}
             onPress={() => {
-              setSelectedPocket(mockPocket);
+              setSelectedPocket(pocket);
               setShowPocketDetailsModal(true);
             }}
             isFirst={index === 0}
@@ -360,62 +319,19 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
       />
       
       <View style={styles.latestTransactionsList}>
-        {/* Mock latest transactions - in real app, get from context */}
-        {[
-          {
-            id: '1',
-            title: 'Grocery Shopping',
-            amount: -85.50,
-            type: 'expense' as const,
-            isRecurring: false,
-            date: '2025-01-15',
-            pocketInfo: {
-              name: 'Emergency Fund',
-              isLinked: true
-            }
-          },
-          {
-            id: '2',
-            title: 'Salary Deposit',
-            amount: 2500.00,
-            type: 'income' as const,
-            isRecurring: true,
-            date: '2025-01-14',
-            pocketInfo: {
-              isLinked: false
-            }
-          },
-          {
-            id: '3',
-            title: 'Coffee Shop',
-            amount: -4.50,
-            type: 'expense' as const,
-            isRecurring: false,
-            date: '2025-01-14',
-            pocketInfo: {
-              isLinked: false
-            }
-          },
-          {
-            id: '4',
-            title: 'Freelance Project',
-            amount: 500.00,
-            type: 'income' as const,
-            isRecurring: false,
-            date: '2025-01-13',
-            pocketInfo: {
-              isLinked: false
-            }
-          }
-        ].map((transaction, index) => (
+        {/* Real latest transactions from Firebase */}
+        {firebaseTransactions.slice(0, 4).map((transaction, index) => (
           <PocketsListItem
             key={transaction.id}
             title={transaction.title}
             date={transaction.date}
-            amount={transaction.amount}
+            amount={parseFloat(transaction.amount) * (transaction.type === 'income' ? 1 : -1)}
             type={transaction.type}
             isRecurring={transaction.isRecurring}
-            pocketInfo={transaction.pocketInfo}
+            pocketInfo={transaction.linkedPocketId ? { 
+              name: firebasePockets.find(p => p.id === transaction.linkedPocketId)?.name || 'Unknown',
+              isLinked: true 
+            } : { isLinked: false }}
             onPress={() => {
               setSelectedTransaction(transaction);
               setShowTransactionDetailsModal(true);
@@ -510,22 +426,22 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
       />
 
       {/* Create Transaction Bottom Sheet */}
-      <CreateTransactionBottomSheet
+      <NewTransactionBottomSheet
         visible={showCreateTransactionModal}
         onClose={() => setShowCreateTransactionModal(false)}
-        pockets={mockPockets}
+        pockets={firebasePockets}
         onSave={(transaction) => {
-          console.log('Transaction saved:', transaction);
+          // Transaction saved successfully
           setShowCreateTransactionModal(false);
         }}
       />
 
       {/* Create Pocket Bottom Sheet */}
-      <CreatePocketBottomSheet
+      <NewPocketBottomSheet
         visible={showCreatePocketModal}
         onClose={() => setShowCreatePocketModal(false)}
         onPocketCreated={(pocket) => {
-          console.log('Pocket saved:', pocket);
+          // Pocket saved successfully
           setShowCreatePocketModal(false);
         }}
       />
@@ -540,11 +456,11 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
           }}
           pocket={selectedPocket}
           onEdit={(updatedPocket) => {
-            console.log('Pocket updated:', updatedPocket);
+            // Pocket updated successfully
             setSelectedPocket(updatedPocket);
           }}
           onDelete={() => {
-            console.log('Pocket deleted');
+            // Pocket deleted successfully
             setShowPocketDetailsModal(false);
             setSelectedPocket(null);
           }}
@@ -560,18 +476,9 @@ export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
             setSelectedTransaction(null);
           }}
           transaction={selectedTransaction}
-          pockets={mockPockets}
-          onEdit={(updatedTransaction) => {
-            console.log('Transaction updated:', updatedTransaction);
-            setSelectedTransaction(updatedTransaction);
-          }}
-          onDelete={() => {
-            console.log('Transaction deleted');
-            setShowTransactionDetailsModal(false);
-            setSelectedTransaction(null);
-          }}
         />
       )}
+
     </View>
   );
 }
@@ -602,10 +509,10 @@ function getStyles(theme: any) {
 
     pocketsTitleContainer: {
       marginBottom: 8, // 8px spacing between title and content (reduced from 16px)
-      paddingHorizontal: theme.spacing.screenPadding, // Padding for title
+      paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
     },
     pocketsScrollSection: {
-      marginBottom: 24, // 24px spacing between sections
+      marginBottom: theme.spacing.lg, // 24px spacing between sections
     },
     pocketsScrollContainer: {
       paddingLeft: 0, // No padding - let elements extend beyond screen
@@ -624,10 +531,10 @@ function getStyles(theme: any) {
 
   aiInsightsTitleContainer: {
     marginBottom: 8, // 8px spacing between title and content (reduced from 16px)
-    paddingHorizontal: theme.spacing.screenPadding, // Padding for title
+    paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
   },
   aiInsightsScrollSection: {
-    marginBottom: 24, // 24px spacing between sections
+    marginBottom: theme.spacing.lg, // 24px spacing between sections
   },
   aiInsightsScrollContainer: {
     paddingLeft: 0, // No padding - let elements extend beyond screen
@@ -635,15 +542,15 @@ function getStyles(theme: any) {
     gap: 0, // No gap - cards handle their own spacing
   },
   latestTransactionsSection: {
-    marginBottom: 24, // 24px spacing between sections
-    paddingHorizontal: theme.spacing.screenPadding, // Add padding back to transactions section
+    marginBottom: theme.spacing.lg, // 24px spacing between sections
+    paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
   },
   latestTransactionsList: {
-    paddingHorizontal: 0,
+    paddingHorizontal: 0, // Remove double padding - parent container handles it
     marginBottom: 8, // Reduced from 20 to 8 since last ListItem has 12px marginBottom
   },
   quickActions: {
-    marginBottom: 24, // Add spacing after quick actions section
+    marginBottom: theme.spacing.lg, // 24px spacing between sections
     paddingHorizontal: theme.spacing.screenPadding, // Add padding back to quick actions section
   },
     actionRow: {

@@ -1,0 +1,114 @@
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Animated,
+} from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+
+interface LaunchScreenProps {
+  onFinish: () => void;
+}
+
+/**
+ * LaunchScreen component for BudgetGOAT app
+ * 
+ * Features:
+ * - Primary blue background
+ * - Centered logo without any shadows or white squares
+ * - Simple fade-in animation
+ * - Accessibility support
+ * 
+ * Usage:
+ * ```tsx
+ * <LaunchScreen onFinish={() => setLaunchComplete(true)} />
+ * ```
+ */
+export default function LaunchScreen({ onFinish }: LaunchScreenProps) {
+  const theme = useTheme();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Start logo fade-in animation
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+
+    // Auto-finish after 2 seconds
+    const timer = setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => {
+        onFinish();
+      });
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [fadeAnim, onFinish]);
+
+  const styles = getStyles(theme);
+
+  return (
+    <View style={styles.container} accessible={true} accessibilityLabel="BudgetGOAT launch screen">
+      <Animated.View
+        style={[
+          styles.logoContainer,
+          {
+            opacity: fadeAnim,
+          },
+        ]}
+      >
+        <Image
+          source={require('../../assets/icon-80x80.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessible={true}
+          accessibilityLabel="BudgetGOAT logo"
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+function getStyles(theme: any) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.trustBlue, // Primary blue background
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 80,
+      height: 80,
+    },
+    logo: {
+      width: 80,
+      height: 80,
+      // Complete shadow removal - all possible shadow properties
+      shadowOpacity: 0,
+      shadowRadius: 0,
+      shadowOffset: { width: 0, height: 0 },
+      shadowColor: 'transparent',
+      elevation: 0, // Remove Android shadow
+      borderWidth: 0,
+      // Additional shadow removal properties
+      textShadowRadius: 0,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowColor: 'transparent',
+      // Remove any glow effects
+      tintColor: undefined,
+      overlayColor: undefined,
+      // Remove outline effects
+      outlineWidth: 0,
+      outlineColor: 'transparent',
+    },
+  });
+}
