@@ -174,9 +174,9 @@ function getStyles(theme: any, insets: any) {
       flex: 1,
     },
     title: {
-      ...theme.typography.h3,
+      ...theme.typography.h4,
       color: theme.colors.text,
-      fontWeight: '700',
+      fontWeight: '500',
     },
     subtitle: {
       ...theme.typography.body2,

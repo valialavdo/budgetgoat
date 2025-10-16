@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Wallet, Target } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
+import { useBudget } from '../context/SafeBudgetContext';
 import KeyboardAwareBottomSheet from './KeyboardAwareBottomSheet';
 import Input from './Input';
 import SegmentedControl from './SegmentedControl';
@@ -19,7 +19,7 @@ export default function CreatePocketBottomSheet({
   onPocketCreated
 }: CreatePocketBottomSheetProps) {
   const theme = useTheme();
-  const { addPocket } = useFirebase();
+  const { createPocket } = useBudget();
   const styles = getStyles(theme);
 
   const [name, setName] = useState('');

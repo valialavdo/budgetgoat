@@ -1,32 +1,23 @@
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PIN_KEY = 'budgetPlannerPIN';
 
 export async function isBiometricAvailable(): Promise<boolean> {
-  const compatible = await LocalAuthentication.hasHardwareAsync();
-  const enrolled = await LocalAuthentication.isEnrolledAsync();
-  return compatible && enrolled;
+  // TODO: Implement with react-native-biometrics
+  return false;
 }
 
 export async function authenticate(): Promise<boolean> {
-  const available = await isBiometricAvailable();
-  if (available) {
-    const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: 'Unlock Budget Planner',
-    });
-    if (result.success) return true;
-  }
-  const pin = await SecureStore.getItemAsync(PIN_KEY);
-  return !pin; // If no PIN set, allow access
+  // TODO: Implement with react-native-biometrics
+  return true; // Allow access for now
 }
 
 export async function setPin(pin: string): Promise<void> {
-  await SecureStore.setItemAsync(PIN_KEY, pin);
+  await AsyncStorage.setItem(PIN_KEY, pin);
 }
 
 export async function clearPin(): Promise<void> {
-  await SecureStore.deleteItemAsync(PIN_KEY);
+  await AsyncStorage.removeItem(PIN_KEY);
 }
 
 

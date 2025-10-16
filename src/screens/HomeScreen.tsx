@@ -1,565 +1,557 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, Animated, Dimensions } from 'react-native';
-import { Star, MagnifyingGlass, Plus, TrendUp, Wallet, Calendar, Export, ChartLineUp } from 'phosphor-react-native';
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  RefreshControl,
+  Alert
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/RootNavigator';
-import LabelPill from '../components/LabelPill';
+import { Plus, Wallet, Receipt, TrendUp, ChartPie, Download } from 'phosphor-react-native';
+import { trackAIInsightInteraction } from '../services/analytics';
+import { useNavigationHelper, NavigationPatterns } from '../utils/navigation';
+import { useTheme } from '../context/ThemeContext';
+import { useBudget } from '../context/SafeBudgetContext';
+import { useAuth } from '../context/SafeFirebaseContext';
+import { useToast } from '../context/SafeToastContext';
+import { mockTransactions, mockPockets } from '../data/mockData';
 import PocketCard from '../components/PocketCard';
+import { TransactionList } from '../components/TransactionList';
+import { BudgetChart } from '../components/BudgetChart';
+import { InsightCard } from '../components/InsightCard';
+import Overview from '../components/Overview';
 import AICardInsight from '../components/AICardInsight';
 import SectionTitle from '../components/SectionTitle';
-import QuickActionButton from '../components/QuickActionButton';
-import { Image } from 'react-native';
-import { useContext } from 'react';
-import { BudgetContext } from '../context/BudgetContext';
-import { useTheme } from '../context/ThemeContext';
-// import { usePockets, useTransactions } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import Header from '../components/Header';
-import Overview from '../components/Overview';
-import { generateAiTips } from '../utils/ai';
-import { projectSixMonths } from '../utils/projection';
-import PocketsListItem from '../components/PocketsListItem';
-import ProjectionBottomSheet from '../components/ProjectionBottomSheet';
-import AIInsightsBottomSheet from '../components/AIInsightsBottomSheet';
-import NewTransactionBottomSheet from '../components/NewTransactionBottomSheet';
+import QuickActionButton from '../components/QuickActionButton';
+import QuickActionCarousel from '../components/QuickActionCarousel';
+import AIInsightsCarousel from '../components/AIInsightsCarousel';
+import Card from '../components/Card';
 import NewPocketBottomSheet from '../components/NewPocketBottomSheet';
+import NewTransactionBottomSheet from '../components/NewTransactionBottomSheet';
+import EnhancedTransactionBottomSheet from '../components/EnhancedTransactionBottomSheet';
 import PocketBottomSheet from '../components/PocketBottomSheet';
-import TransactionBottomSheet from '../components/TransactionBottomSheet';
-import { format } from 'date-fns';
-import { generateChartData, generateProjectionData, getPreviousMonthKey, getNextMonthKey } from '../utils/date';
+import TransactionHome from '../components/TransactionHome';
+import { Pocket, Transaction } from '../services/firestoreService';
 
-const { width: screenWidth } = Dimensions.get('window');
+type RootStackParamList = {
+  AIInsights: undefined;
+  ExportData: undefined;
+  TransactionsList: undefined;
+};
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Tabs'>;
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface HomeScreenProps {
-  setActiveTab?: (index: number) => void;
+interface TransactionBottomSheetData {
+  id: string;
+  title: string;
+  amount: number;
+  type: 'income' | 'expense';
+  date: string;
+  isRecurring?: boolean;
+  pocketInfo?: {
+    isLinked: boolean;
+    pocketName?: string;
+  };
+  description?: string;
+  category?: string;
 }
 
-export default function HomeScreen({ setActiveTab }: HomeScreenProps) {
-  const navigation = useNavigation<HomeScreenNavigationProp>();
+export default function HomeScreen() {
   const theme = useTheme();
-  const { state, computeTotals, computePocketBalancesUpTo } = useContext(BudgetContext);
-  const [showProjectionModal, setShowProjectionModal] = useState(false);
-  const [showAIInsightsModal, setShowAIInsightsModal] = useState(false);
-  const [showCreateTransactionModal, setShowCreateTransactionModal] = useState(false);
-  const [showCreatePocketModal, setShowCreatePocketModal] = useState(false);
-  const [showPocketDetailsModal, setShowPocketDetailsModal] = useState(false);
-  const [showTransactionDetailsModal, setShowTransactionDetailsModal] = useState(false);
-  const [selectedPocket, setSelectedPocket] = useState<any>(null);
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [scrollY] = useState(new Animated.Value(0));
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const navHelper = useNavigationHelper(navigation, 'HomeScreen');
+  const { 
+    pockets, 
+    transactions, 
+    insights, 
+    totalBalance, 
+    monthlyIncome, 
+    monthlyExpenses, 
+    savingsRate,
+    pocketsLoading,
+    transactionsLoading,
+    insightsLoading,
+    createPocket,
+    createTransaction,
+    refreshData
+  } = useBudget();
+  const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   
-  // Mock data for Expo Go compatibility
-  const firebasePockets = [
-    {
-      id: '1',
-      name: 'Emergency Fund',
-      type: 'standard',
-      currentBalance: 2500,
-      targetAmount: 0,
-      transactionCount: 5,
-    },
-    {
-      id: '2', 
-      name: 'Vacation',
-      type: 'goal',
-      currentBalance: 800,
-      targetAmount: 2000,
-      transactionCount: 3,
-    }
-  ];
-  const firebaseTransactions = [
-    {
-      id: '1',
-      title: 'Coffee Shop',
-      amount: '4.50',
-      type: 'expense',
-      date: '2024-01-15',
-      linkedPocketId: '1',
-      isRecurring: false,
-    },
-    {
-      id: '2',
-      title: 'Salary',
-      amount: '3000',
-      type: 'income', 
-      date: '2024-01-14',
-      linkedPocketId: '1',
-      isRecurring: true,
-    }
-  ];
-  const pocketsLoading = false;
-  const transactionsLoading = false;
+  // Calculate pocket summary metrics
+  const totalTargets = pockets.reduce((sum, pocket) => sum + (pocket.targetAmount || 0), 0);
+  const totalAssigned = pockets.reduce((sum, pocket) => sum + (pocket.currentBalance || 0), 0);
+  const totalSpent = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const underfunded = totalTargets - totalAssigned;
   
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  
-  // Trigger animations on mount
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
-
-  const styles = getStyles(theme);
-
-  if (!state || !state.categories) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading BudgetGOAT...</Text>
-      </View>
-    );
-  }
-
-  // Get current month in YYYY-MM format
-  const currentDate = new Date();
-  const currentMonth = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
-  
-  const currentMonthTotals = computeTotals(currentMonth);
-  const pocketBalances = computePocketBalancesUpTo(currentMonth);
-  const aiTips = generateAiTips(state, currentMonth);
-  const rawProjectionData = projectSixMonths(state, new Date(currentMonth + '-01'));
-  
-  // Transform projection data to match expected format
-  const projectionData = rawProjectionData.map((point, index) => ({
-    month: format(new Date(point.month + '-01'), 'MMM'),
-    totalBalance: point.remaining
-  }));
-  
-  // Projection data processed
-
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState<'pie' | 'bar' | 'progress'>('pie');
   const [selectedPeriod, setSelectedPeriod] = useState<'1M' | '3M' | '6M' | '1Y'>('1M');
+  const [showNewPocketSheet, setShowNewPocketSheet] = useState(false);
+  const [showNewTransactionSheet, setShowNewTransactionSheet] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionBottomSheetData | null>(null);
+  const [showTransactionDetail, setShowTransactionDetail] = useState(false);
+  const [selectedPocket, setSelectedPocket] = useState<any | null>(null);
+  const [showPocketDetail, setShowPocketDetail] = useState(false);
 
-  // Generate chart data for Overview based on selected period
-  const getChartDataForPeriod = (period: '1M' | '3M' | '6M' | '1Y') => {
-    const months = period === '1M' ? 1 : period === '3M' ? 3 : period === '6M' ? 6 : 12;
-    const endMonth = currentMonth;
-    
-    // Calculate start month by going back (months - 1) months
-    let startMonth = endMonth;
-    for (let i = 1; i < months; i++) {
-      startMonth = getPreviousMonthKey(startMonth);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshData();
+      showSuccess('Data refreshed successfully', 2000);
+    } catch (error) {
+      showError('Failed to refresh data', 3000);
+    } finally {
+      setRefreshing(false);
     }
-    
-    // Get transactions for the selected period
-    const periodTransactions = [];
-    let currentMonthKey = startMonth;
-    
-    while (currentMonthKey <= endMonth) {
-      const monthTransactions = state.transactionsByMonth[currentMonthKey] || [];
-      periodTransactions.push(...monthTransactions);
-      currentMonthKey = getNextMonthKey(currentMonthKey);
-    }
-    
-    return periodTransactions;
   };
 
-  const periodTransactions = getChartDataForPeriod(selectedPeriod);
-  
-  // Generate real chart data from transactions
-  const incomeChartData = generateChartData(
-    periodTransactions,
-    currentMonth,
-    'income'
-  );
-  
-  const expenseChartData = generateChartData(
-    periodTransactions,
-    currentMonth,
-    'expense'
-  );
+  const handleCreatePocket = () => {
+    setShowNewPocketSheet(true);
+  };
 
-  // Mock data to see the chart working (remove when real data is available)
-  const mockIncomeData = [1200, 1800, 2200, 2800, 3200]; // Increasing income trend
-  const mockExpenseData = [800, 1200, 1000, 1500, 1800]; // Variable expense trend
-  const mockTimeLabels = ['01', '08', '15', '22', '29'];
+  const handleCreateTransaction = () => {
+    if (pockets.length === 0) {
+      showError('Please create a pocket first', 3000);
+      return;
+    }
+    setShowNewTransactionSheet(true);
+  };
 
-  // Force mock data for now to ensure proper labels
-  const displayIncomeData = mockIncomeData;
-  const displayExpenseData = mockExpenseData;
-  const displayTimeLabels = mockTimeLabels;
+  const handlePocketCreated = async (pocketData: any) => {
+    try {
+      await createPocket(pocketData);
+      showSuccess('Pocket created successfully', 2000);
+      setShowNewPocketSheet(false);
+    } catch (error) {
+      showError('Failed to create pocket', 3000);
+    }
+  };
 
+  const handleTransactionCreated = async (transactionData: any) => {
+    try {
+      await createTransaction(transactionData);
+      showSuccess('Transaction created successfully', 2000);
+      setShowNewTransactionSheet(false);
+    } catch (error) {
+      showError('Failed to create transaction', 3000);
+    }
+  };
 
+  const handleInsightDismiss = (id: string) => {
+    trackAIInsightInteraction(id, 'dismiss');
+    console.log('Insight dismissed:', id);
+    // This could update a user preference to hide this insight
+    // or mark it as dismissed in the backend
+  };
 
+  const handleInsightPress = (id: string) => {
+    trackAIInsightInteraction(id, 'press');
+    console.log('Insight pressed:', id);
+    // This could navigate to a detailed view of the insight
+    // or perform a specific action related to the insight
+  };
 
-
-
-
-
-
-
-
-
-  const renderPockets = () => (
-    <>
-      <View style={styles.pocketsTitleContainer}>
-        <SectionTitle 
-          title="Pockets"
-          rightButton={{
-            icon: <ChartLineUp weight="light" size={16} color={theme.colors.background} />,
-            onPress: () => setShowProjectionModal(true)
-          }}
-        />
-      </View>
-      
-      <View style={styles.pocketsScrollSection}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.pocketsScrollContainer}
-          snapToInterval={162}
-          decelerationRate="fast"
-        >
-        {/* Real pockets from Firebase */}
-        {firebasePockets.map((pocket, index) => (
-          <PocketCard
-            key={pocket.id}
-            id={pocket.id}
-            name={pocket.name}
-            type={pocket.type}
-            balance={pocket.currentBalance}
-            targetAmount={pocket.targetAmount}
-            transactionCount={pocket.transactionCount}
-            onPress={() => {
-              setSelectedPocket(pocket);
-              setShowPocketDetailsModal(true);
-            }}
-            isFirst={index === 0}
-          />
-        ))}
-        </ScrollView>
-      </View>
-    </>
-  );
-
-
-
-  const renderAiInsights = () => {
-    const [aiInsights, setAiInsights] = useState([
-      {
-        id: '1',
-        title: 'AI Insights',
-        description: 'The previous month you spent more on groceries. Put the rest of this month in the saving funds.'
+  const handleTransactionPress = (transaction: Transaction) => {
+    console.log('Home screen - Transaction pressed:', transaction);
+    // Map our Transaction interface to the one expected by TransactionBottomSheet
+    const mappedTransaction = {
+      id: transaction.id,
+      title: transaction.description || 'Transaction',
+      amount: transaction.amount,
+      type: transaction.type,
+      date: transaction.date.toISOString(),
+      isRecurring: transaction.tags?.includes('recurring') || false,
+      pocketInfo: {
+        isLinked: !!transaction.pocketId,
+        pocketName: transaction.pocketId ? mockPockets.find(p => p.id === transaction.pocketId)?.name : undefined
       },
-      {
-        id: '2',
-        title: 'Smart Tip',
-        description: 'Your emergency fund is growing well. Consider increasing your savings goal by 20%.'
-      },
-      {
-        id: '3',
-        title: 'Budget Alert',
-        description: 'You\'re on track to exceed your dining budget. Consider cooking at home more often.'
-      }
-    ]);
-
-    const handleDismissInsight = (id: string) => {
-      setAiInsights(prev => prev.filter(insight => insight.id !== id));
+      description: transaction.description,
+      category: transaction.category
     };
-
-    if (aiInsights.length === 0) return null;
-
-    return (
-      <>
-        <View style={styles.aiInsightsTitleContainer}>
-          <SectionTitle title="AI Insights" />
-        </View>
-        <View style={styles.aiInsightsScrollSection}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.aiInsightsScrollContainer}
-            snapToInterval={348}
-            decelerationRate="fast"
-          >
-            {aiInsights.map((insight, index) => (
-              <AICardInsight
-                key={insight.id}
-                id={insight.id}
-                title={insight.title}
-                description={insight.description}
-                isFirst={index === 0}
-                illustration={
-                  <Image 
-                    source={require('../../assets/undraw_wallet_diag 1.png')} 
-                    style={{ width: 80, height: 80, resizeMode: 'contain' }}
-                  />
-                }
-                onDismiss={handleDismissInsight}
-                onPress={() => setShowAIInsightsModal(true)}
-              />
-            ))}
-          </ScrollView>
-        </View>
-      </>
-    );
+    console.log('Home screen - Mapped transaction:', mappedTransaction);
+    setSelectedTransaction(mappedTransaction);
+    setShowTransactionDetail(true);
+    console.log('Home screen - Transaction detail should be visible now');
   };
 
-  const renderLatestTransactions = () => (
-    <View style={styles.latestTransactionsSection}>
-      <SectionTitle 
-        title="Latest Transactions"
-        rightButton={{
-          text: "View All",
-          onPress: () => {
-            setActiveTab?.(2); // Navigate to Transactions tab (index 2)
-          }
-        }}
-      />
-      
-      <View style={styles.latestTransactionsList}>
-        {/* Real latest transactions from Firebase */}
-        {firebaseTransactions.slice(0, 4).map((transaction, index) => (
-          <PocketsListItem
-            key={transaction.id}
-            title={transaction.title}
-            date={transaction.date}
-            amount={parseFloat(transaction.amount) * (transaction.type === 'income' ? 1 : -1)}
-            type={transaction.type}
-            isRecurring={transaction.isRecurring}
-            pocketInfo={transaction.linkedPocketId ? { 
-              name: firebasePockets.find(p => p.id === transaction.linkedPocketId)?.name || 'Unknown',
-              isLinked: true 
-            } : { isLinked: false }}
-            onPress={() => {
-              setSelectedTransaction(transaction);
-              setShowTransactionDetailsModal(true);
-            }}
-            showDivider={index < 3} // Don't show divider for last item
-          />
-        ))}
-      </View>
-    </View>
-  );
+  const handlePocketPress = (pocket: any) => {
+    console.log('Home screen - Pocket pressed:', pocket);
+    setSelectedPocket(pocket);
+    setShowPocketDetail(true);
+    console.log('Home screen - Pocket detail should be visible now');
+  };
 
-  const renderQuickActions = () => (
-    <View style={styles.quickActions}>
-      <View style={styles.actionRow}>
-        <QuickActionButton
-          icon={<Plus weight="light" size={20} color={theme.colors.text} />}
-          title="Add Transaction"
-          onPress={() => setShowCreateTransactionModal(true)}
-        />
-        
-        <QuickActionButton
-          icon={<Wallet weight="light" size={20} color={theme.colors.text} />}
-          title="Create Pocket"
-          onPress={() => setShowCreatePocketModal(true)}
-        />
-        
-        <QuickActionButton
-          icon={<Export weight="light" size={20} color={theme.colors.text} />}
-          title="Export CSV"
-          onPress={() => {
-            navigation.navigate('ExportData');
-          }}
-        />
-      </View>
-    </View>
-  );
+  const recentTransactions = mockTransactions.slice(0, 5);
+
+  // Calculate overview data
+  const totalIncome = mockTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = mockTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const netBalance = totalIncome - totalExpenses;
+
+  // Mock data for charts (in real app, this would come from API)
+  const incomeData = [1200, 1500, 1800, 1600, 2000, 1900];
+  const expenseData = [800, 900, 1200, 1000, 1100, 1050];
+  const timeLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
   return (
-    <View style={styles.container}>
-      <Header 
-        title="BudgetGOAT" 
-        scrollY={scrollY}
-        scrollThreshold={10}
-      />
-      
-      <Animated.View 
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
-      >
-        <Animated.ScrollView 
-          showsVerticalScrollIndicator={false} 
-          contentContainerStyle={styles.scrollContent}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
-          )}
-          scrollEventThrottle={16}
-        >
-          <Overview 
-            label="Current Balance"
-            amount={currentMonthTotals?.remaining || 0}
-            incomeData={displayIncomeData}
-            expenseData={displayExpenseData}
-            timeLabels={displayTimeLabels}
-            currency="€"
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ScrollView 
+        style={styles.scrollView}
+        nestedScrollEnabled={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.goatGreen}
           />
-          {renderQuickActions()}
-          {renderAiInsights()}
-          {renderPockets()}
-          {renderLatestTransactions()}
-        </Animated.ScrollView>
-      </Animated.View>
-      
-      {/* 6-Month Projection Bottom Sheet */}
-      <ProjectionBottomSheet
-        visible={showProjectionModal}
-        onClose={() => setShowProjectionModal(false)}
-        projectionData={projectionData}
-      />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Header
+          title="Budget Overview"
+        />
 
-      {/* AI Insights Bottom Sheet */}
-      <AIInsightsBottomSheet
-        visible={showAIInsightsModal}
-        onClose={() => setShowAIInsightsModal(false)}
-      />
+        {/* Main Overview Section - This is the sophisticated UI from Expo Go */}
+        <Overview
+          label="Total Balance"
+          amount={totalBalance}
+          incomeData={incomeData}
+          expenseData={expenseData}
+          timeLabels={timeLabels}
+          currency="€"
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+        />
 
-      {/* Create Transaction Bottom Sheet */}
-      <NewTransactionBottomSheet
-        visible={showCreateTransactionModal}
-        onClose={() => setShowCreateTransactionModal(false)}
-        pockets={firebasePockets}
-        onSave={(transaction) => {
-          // Transaction saved successfully
-          setShowCreateTransactionModal(false);
-        }}
-      />
+        {/* AI Insights Section */}
+        {insights.length > 0 && (
+          <View style={styles.insightsSection}>
+            <SectionTitle
+              title="AI Insights"
+              rightButton={{
+                text: "View All",
+                onPress: () => navHelper.goToAIInsights()
+              }}
+            />
+            
+             <AIInsightsCarousel
+               insights={insights}
+            onDismiss={handleInsightDismiss}
+            onPress={handleInsightPress}
+             />
+          </View>
+        )}
 
-      {/* Create Pocket Bottom Sheet */}
+        {/* Quick Actions Carousel */}
+        <View style={styles.quickActionsSection}>
+          <SectionTitle
+            title="Quick Actions"
+          />
+          <QuickActionCarousel
+            items={[
+              {
+                id: 'add-pocket',
+                icon: <Wallet size={24} color={theme.colors.trustBlue} weight="light" />,
+                title: 'Add Pocket',
+                onPress: handleCreatePocket,
+              },
+              {
+                id: 'add-transaction',
+                icon: <Receipt size={24} color={theme.colors.goatGreen} weight="light" />,
+                title: 'Add Transaction',
+                onPress: handleCreateTransaction,
+              },
+              {
+                id: 'view-charts',
+                icon: <TrendUp size={24} color={theme.colors.trustBlue} weight="light" />,
+                title: 'View Charts',
+                onPress: () => navigation.navigate('AIInsights'),
+              },
+              {
+                id: 'budget-insights',
+                icon: <ChartPie size={24} color={theme.colors.goatGreen} weight="light" />,
+                title: 'Budget Insights',
+                onPress: () => navigation.navigate('AIInsights'),
+              },
+              {
+                id: 'export-data',
+                icon: <Download size={24} color={theme.colors.trustBlue} weight="light" />,
+                title: 'Export Data',
+                onPress: () => navigation.navigate('ExportData'),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Pocket Overview Section */}
+        <View style={styles.section}>
+          <SectionTitle 
+            title="Pockets"
+            marginBottom={12}
+          />
+          <View style={styles.pocketsContainer}>
+            {pockets.slice(0, 4).map((pocket) => (
+              <PocketCard
+                key={pocket.id}
+                pocket={pocket}
+                onPress={handlePocketPress}
+              />
+            ))}
+          </View>
+        </View>
+
+
+        {/* Recent Transactions Section - Final UI */}
+        <View style={styles.section}>
+          <SectionTitle
+            title="Recent Transactions"
+            rightButton={{
+              text: "View All",
+              onPress: () => navHelper.goToTransactions()
+            }}
+          />
+
+          {transactionsLoading ? (
+            <View style={styles.loadingCard}>
+              <Text style={[styles.loadingText, { color: theme.colors.textMuted }]}>
+                Loading transactions...
+              </Text>
+            </View>
+          ) : recentTransactions.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={[styles.emptyText, { color: theme.colors.text }]}>
+                No transactions yet
+              </Text>
+              <Text style={[styles.emptySubtext, { color: theme.colors.textMuted }]}>
+                Add your first transaction to start tracking
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.transactionsContainer}>
+              {recentTransactions.slice(0, 3).map((transaction, index) => (
+                <TransactionHome
+                  key={transaction.id}
+                  transaction={transaction}
+                  pockets={mockPockets}
+                  onPress={handleTransactionPress}
+                  isLast={index === 2}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
+
+      {/* Bottom Sheets */}
       <NewPocketBottomSheet
-        visible={showCreatePocketModal}
-        onClose={() => setShowCreatePocketModal(false)}
-        onPocketCreated={(pocket) => {
-          // Pocket saved successfully
-          setShowCreatePocketModal(false);
+        visible={showNewPocketSheet}
+        onClose={() => setShowNewPocketSheet(false)}
+        onPocketCreated={handlePocketCreated}
+      />
+
+      <NewTransactionBottomSheet
+        visible={showNewTransactionSheet}
+        onClose={() => setShowNewTransactionSheet(false)}
+        onSave={handleTransactionCreated}
+        pockets={pockets.map(pocket => ({
+          id: pocket.id,
+          name: pocket.name,
+          type: 'standard' as const
+        }))}
+      />
+
+      <EnhancedTransactionBottomSheet
+        visible={showTransactionDetail}
+        onClose={() => setShowTransactionDetail(false)}
+        transaction={selectedTransaction}
+        pockets={mockPockets}
+        onEdit={(transaction) => {
+          console.log('Edit transaction:', transaction);
+          Alert.alert('Edit Transaction', 'Edit functionality will be implemented');
+        }}
+        onDelete={(transactionId) => {
+          console.log('Delete transaction:', transactionId);
+          Alert.alert('Delete Transaction', 'Delete functionality will be implemented');
+        }}
+        onSave={async (transaction) => {
+          console.log('Saving transaction:', transaction);
+          // In a real app, this would save to the database
+          Alert.alert('Success', 'Transaction saved successfully');
         }}
       />
 
-      {/* Pocket Details Bottom Sheet */}
-      {selectedPocket && (
-        <PocketBottomSheet
-          visible={showPocketDetailsModal}
-          onClose={() => {
-            setShowPocketDetailsModal(false);
-            setSelectedPocket(null);
-          }}
-          pocket={selectedPocket}
-          onEdit={(updatedPocket) => {
-            // Pocket updated successfully
-            setSelectedPocket(updatedPocket);
-          }}
-          onDelete={() => {
-            // Pocket deleted successfully
-            setShowPocketDetailsModal(false);
-            setSelectedPocket(null);
-          }}
-        />
-      )}
-
-      {/* Transaction Details Bottom Sheet */}
-      {selectedTransaction && (
-        <TransactionBottomSheet
-          visible={showTransactionDetailsModal}
-          onClose={() => {
-            setShowTransactionDetailsModal(false);
-            setSelectedTransaction(null);
-          }}
-          transaction={selectedTransaction}
-        />
-      )}
-
+      <PocketBottomSheet
+        visible={showPocketDetail}
+        onClose={() => setShowPocketDetail(false)}
+        pocket={selectedPocket}
+        onEdit={(pocket) => {
+          console.log('Edit pocket:', pocket);
+          Alert.alert('Edit Pocket', 'Edit functionality will be implemented');
+        }}
+        onDelete={(pocketId) => {
+          console.log('Delete pocket:', pocketId);
+          Alert.alert('Delete Pocket', 'Delete functionality will be implemented');
+        }}
+      />
     </View>
   );
 }
 
-function getStyles(theme: any) {
-  return StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: theme.colors.background,
-    },
-    loadingText: {
-      ...theme.typography.h3,
-      color: theme.colors.textMuted,
-    },
-  content: {
+const styles = StyleSheet.create({
+  container: {
     flex: 1,
   },
-    scrollContent: {
-      paddingHorizontal: 0, // Remove horizontal padding to allow chart to extend to edges
-      paddingBottom: 100, // Add bottom padding so quick actions are visible above nav menu
-    },
-
-    pocketsTitleContainer: {
-      marginBottom: 8, // 8px spacing between title and content (reduced from 16px)
-      paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
-    },
-    pocketsScrollSection: {
-      marginBottom: theme.spacing.lg, // 24px spacing between sections
-    },
-    pocketsScrollContainer: {
-      paddingLeft: 0, // No padding - let elements extend beyond screen
-      paddingRight: 0, // No padding - let elements extend beyond screen
-    },
-
-    pocketsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.md,
-      justifyContent: 'space-between',
-    },
-
-
-
-
-  aiInsightsTitleContainer: {
-    marginBottom: 8, // 8px spacing between title and content (reduced from 16px)
-    paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
+  scrollView: {
+    flex: 1,
   },
-  aiInsightsScrollSection: {
-    marginBottom: theme.spacing.lg, // 24px spacing between sections
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
-  aiInsightsScrollContainer: {
-    paddingLeft: 0, // No padding - let elements extend beyond screen
-    paddingRight: 0, // No padding - let elements extend beyond screen
-    gap: 0, // No gap - cards handle their own spacing
+  balanceCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
   },
-  latestTransactionsSection: {
-    marginBottom: theme.spacing.lg, // 24px spacing between sections
-    paddingHorizontal: theme.spacing.screenPadding, // 20px left and right padding
+  balanceContent: {
+    alignItems: 'center',
+    paddingVertical: 8,
   },
-  latestTransactionsList: {
-    paddingHorizontal: 0, // Remove double padding - parent container handles it
-    marginBottom: 8, // Reduced from 20 to 8 since last ListItem has 12px marginBottom
+  balanceLabel: {
+    fontSize: 16,
+    marginBottom: 8,
   },
-  quickActions: {
-    marginBottom: theme.spacing.lg, // 24px spacing between sections
-    paddingHorizontal: theme.spacing.screenPadding, // Add padding back to quick actions section
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: '700',
   },
-    actionRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingHorizontal: 0,
-      gap: theme.spacing.md,
-    },
-  });
-}
-
-
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+  },
+  statContent: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  chartTypeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chartTypeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  chartTypeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chartCard: {
+    marginTop: 16,
+  },
+  addButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loadingCard: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  pocketCard: {
+    marginBottom: 12,
+  },
+  transactionsCard: {
+    marginTop: 16,
+  },
+  insightCard: {
+    marginBottom: 12,
+  },
+  bottomSpacing: {
+    height: 100,
+  },
+  insightsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  insightsContainer: {
+    gap: 8,
+    paddingHorizontal: 0,
+  },
+  quickActionsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  
+  // Pockets Container Styles
+  pocketsContainer: {
+    gap: 16,
+  },
+  
+  
+  // Transactions Section Styles
+  transactionsContainer: {
+    gap: 8,
+  },
+});

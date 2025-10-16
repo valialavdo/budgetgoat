@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { X } from 'phosphor-react-native';
+import { X, WarningCircle } from 'phosphor-react-native';
 
 interface AICardInsightProps {
   id: string;
@@ -11,6 +11,8 @@ interface AICardInsightProps {
   onDismiss: (id: string) => void;
   onPress?: () => void;
   isFirst?: boolean;
+  isSingleCard?: boolean;
+  isCarousel?: boolean;
 }
 
 export default function AICardInsight({ 
@@ -20,12 +22,22 @@ export default function AICardInsight({
   illustration,
   onDismiss,
   onPress,
-  isFirst = false
+  isFirst = false,
+  isSingleCard = false,
+  isCarousel = false
 }: AICardInsightProps) {
   const theme = useTheme();
-  const styles = getStyles(theme);
+  const styles = getStyles(theme, isSingleCard, isCarousel);
+  
+  // Determine container style based on props
+  const getContainerStyle = () => {
+    if (isSingleCard) return styles.singleCardContainer;
+    if (isFirst) return styles.firstContainer;
+    return styles.container;
+  };
+
   return (
-    <View style={isFirst ? styles.firstContainer : styles.container}>
+    <View style={getContainerStyle()}>
       <TouchableOpacity 
         style={styles.card}
         onPress={onPress}
@@ -41,7 +53,10 @@ export default function AICardInsight({
         
         <View style={styles.content}>
           <View style={styles.textContent}>
-            <Text style={styles.title}>{title}</Text>
+            <View style={styles.titleContainer}>
+              <WarningCircle size={24} color={theme.colors.trustBlue} weight="regular" />
+              <Text style={styles.title}>{title}</Text>
+            </View>
             <Text style={styles.description}>{description}</Text>
           </View>
           
@@ -56,23 +71,26 @@ export default function AICardInsight({
   );
 }
 
-function getStyles(theme: any) {
+function getStyles(theme: any, isSingleCard?: boolean, isCarousel?: boolean) {
+  const cardWidth = isSingleCard ? undefined : 340; // Full width for single card, fixed width for carousel
+  
   return StyleSheet.create({
     container: {
       marginRight: 12, // Spacing between cards
     },
     firstContainer: {
-      marginLeft: theme.spacing.screenPadding, // Only first card starts at screen edge (aligned with title)
       marginRight: 12, // Spacing between cards
     },
+    singleCardContainer: {
+      // No margins for single card - handled by parent container
+    },
     card: {
-      width: 340,
+      width: cardWidth,
+      height: 120, // Fixed height for all cards
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.lg,
       padding: theme.spacing.md,
       position: 'relative',
-      borderWidth: 1,
-      borderColor: theme.colors.border,
     },
     dismissButton: {
       position: 'absolute',
@@ -88,16 +106,24 @@ function getStyles(theme: any) {
       marginTop: theme.spacing.sm,
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
+      flex: 1,
     },
     textContent: {
       flex: 1,
       marginRight: theme.spacing.md,
+      justifyContent: 'center',
+    },
+    titleContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: theme.spacing.sm,
     },
     title: {
       ...theme.typography.bodyMedium,
       color: theme.colors.text,
-      marginBottom: theme.spacing.sm,
+      marginLeft: theme.spacing.xs,
+      flex: 1,
     },
     description: {
       ...theme.typography.caption,

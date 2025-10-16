@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TrendUp, TrendDown, Wallet } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
-import { useToastHelpers } from '../context/ToastContext';
+import { useBudget } from '../context/SafeBudgetContext';
+import { useToast } from '../context/SafeToastContext';
 import KeyboardAwareBottomSheet from './KeyboardAwareBottomSheet';
+import BaseBottomSheet from './BaseBottomSheet';
 import SegmentedControl from './SegmentedControl';
 import SelectionInput from './SelectionInput';
 import Input from './Input';
@@ -48,9 +49,9 @@ export default function NewTransactionBottomSheet({
   initialData
 }: NewTransactionBottomSheetProps) {
   const theme = useTheme();
-  const { addTransaction } = useFirebase();
+  const { createTransaction } = useBudget();
   const styles = getStyles(theme);
-  const { showSuccess, showError } = useToastHelpers();
+  const { showSuccess, showError } = useToast();
 
   const [title, setTitle] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -100,7 +101,18 @@ export default function NewTransactionBottomSheet({
     }
 
     try {
-      const transaction = {
+      const transactionData = {
+        pocketId: selectedPocketId || '',
+        amount: parseFloat(amount),
+        type,
+        category: 'General',
+        description: description.trim() || 'New transaction',
+        date: date,
+        tags: isRecurring ? ['recurring'] : [],
+      };
+
+      await createTransaction(transactionData);
+      onSave({
         title: title.trim(),
         amount: amount.trim(),
         type,
@@ -108,10 +120,7 @@ export default function NewTransactionBottomSheet({
         linkedPocketId: selectedPocketId || undefined,
         isRecurring,
         date: date.toISOString().split('T')[0],
-      };
-
-      const transactionId = await addTransaction(transaction);
-      onSave({ id: transactionId, ...transaction });
+      });
       onClose();
     } catch (error) {
       console.error('Failed to create transaction:', error);
@@ -220,12 +229,11 @@ export default function NewTransactionBottomSheet({
 
         {/* Date */}
         <View style={styles.section}>
-          <DateInput
-            label="Date"
-            value={date}
-            onDateChange={setDate}
-            placeholder="Select date"
-          />
+        <DateInput
+          label="Date"
+          value={date}
+          onDateChange={setDate}
+        />
         </View>
 
         {/* Pocket Selector */}
@@ -236,7 +244,7 @@ export default function NewTransactionBottomSheet({
             title="Select Pocket"
             actionButtons={[
               {
-                text: 'Cancel',
+                title: 'Cancel',
                 onPress: () => setShowPocketSelector(false),
                 variant: 'secondary',
               },
@@ -247,11 +255,11 @@ export default function NewTransactionBottomSheet({
                 label=""
                 value="No Pocket"
                 placeholder="No pocket selected"
+                icon={<Wallet size={20} weight="light" />}
                 onPress={() => {
                   setSelectedPocketId('');
                   setShowPocketSelector(false);
                 }}
-                selected={!selectedPocketId}
               />
               {pockets.map((pocket) => (
                 <SelectionInput
@@ -259,11 +267,11 @@ export default function NewTransactionBottomSheet({
                   label=""
                   value={pocket.name}
                   placeholder=""
+                  icon={<Wallet size={20} weight="light" />}
                   onPress={() => {
                     setSelectedPocketId(pocket.id);
                     setShowPocketSelector(false);
                   }}
-                  selected={selectedPocketId === pocket.id}
                 />
               ))}
             </View>

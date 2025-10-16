@@ -1,12 +1,13 @@
-import React, { useState, useMemo, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity, ScrollView, Animated } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity, ScrollView, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { BudgetContext } from '../context/BudgetContext';
+import { useBudget } from '../context/SafeBudgetContext';
 // import { usePockets } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import { Plus, Wallet, Target, Link, LinkBreak } from 'phosphor-react-native';
+import { mockPockets, mockTransactions, getPocketsWithType } from '../data/mockData';
 import Header from '../components/Header';
 import PillFilter from '../components/PillFilter';
-import PocketsListItem from '../components/PocketsListItem';
+import PocketCard from '../components/PocketCard';
 import InfoBottomSheet from '../components/InfoBottomSheet';
 import NewPocketBottomSheet from '../components/NewPocketBottomSheet';
 import PocketBottomSheet from '../components/PocketBottomSheet';
@@ -19,14 +20,15 @@ interface Pocket {
   targetAmount?: number;
   description: string;
   color: string;
+  category: string;
   transactionCount: number;
 }
 
 export default function PocketsScreen() {
   const theme = useTheme();
-  const { state, upsertCategory, deleteCategories, computePocketBalancesUpTo } = useContext(BudgetContext);
+  const { pockets, createPocket, updatePocket, deletePocket, pocketsLoading, transactions } = useBudget();
   // Mock data for Expo Go compatibility
-  const firebasePockets = [
+  const mockPockets = [
     {
       id: '1',
       name: 'Emergency Fund',
@@ -34,6 +36,9 @@ export default function PocketsScreen() {
       currentBalance: 2500,
       targetAmount: 0,
       transactionCount: 5,
+      description: 'Emergency savings for unexpected expenses',
+      color: '#10B981',
+      category: 'Savings',
     },
     {
       id: '2', 
@@ -42,9 +47,11 @@ export default function PocketsScreen() {
       currentBalance: 800,
       targetAmount: 2000,
       transactionCount: 3,
+      description: 'Vacation fund for upcoming trip',
+      color: '#F59E0B',
+      category: 'Travel',
     }
   ];
-  const pocketsLoading = false;
   const [showPocketForm, setShowPocketForm] = useState(false);
   const [scrollY] = useState(new Animated.Value(0));
   const [editingPocket, setEditingPocket] = useState<Pocket | null>(null);
@@ -55,21 +62,23 @@ export default function PocketsScreen() {
 
   // Get current month for balance calculation
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-  const pocketBalances = computePocketBalancesUpTo(currentMonth);
+  // Mock pocket balances for now
+  const pocketBalances = {};
 
-  // Use Firebase pockets data
-  const pockets: Pocket[] = useMemo(() => {
-    return firebasePockets.map(pocket => ({
+  // Use mock pockets data
+  const displayPockets: Pocket[] = useMemo(() => {
+    return mockPockets.map(pocket => ({
       id: pocket.id,
       name: pocket.name,
-      type: pocket.type,
+      type: pocket.type as 'standard' | 'goal',
       currentBalance: pocket.currentBalance,
       targetAmount: pocket.targetAmount,
-      description: pocket.description || '',
-      color: pocket.color || (pocket.type === 'standard' ? theme.colors.labelStandard : theme.colors.labelGoal),
+      description: pocket.description,
+      color: pocket.color,
+      category: pocket.category,
       transactionCount: pocket.transactionCount,
     }));
-  }, [firebasePockets, theme.colors]);
+  }, [mockPockets]);
 
   const filters = [
     { key: 'all', label: 'All' },
@@ -78,9 +87,9 @@ export default function PocketsScreen() {
   ];
 
   const filteredPockets = useMemo(() => {
-    if (selectedFilter === 'all') return pockets;
-    return pockets.filter(pocket => pocket.type === selectedFilter);
-  }, [pockets, selectedFilter]);
+    if (selectedFilter === 'all') return displayPockets;
+    return displayPockets.filter(pocket => pocket.type === selectedFilter);
+  }, [displayPockets, selectedFilter]);
 
   const handleAddPocket = () => {
     setEditingPocket(null);
@@ -99,7 +108,8 @@ export default function PocketsScreen() {
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: () => {
-          deleteCategories([pocketId]);
+          // TODO: Implement delete pocket functionality
+          console.log('Delete pocket:', pocketId);
           Alert.alert('Success', 'Pocket deleted successfully');
         }},
       ]
@@ -116,26 +126,13 @@ export default function PocketsScreen() {
   }) => {
     if (editingPocket) {
       // Update existing pocket
-      upsertCategory({
-        id: editingPocket.id,
-        name: pocketData.name,
-        type: pocketData.type === 'standard' ? 'bank' : 'other',
-        color: pocketData.type === 'goal' ? theme.colors.labelGoal : theme.colors.labelStandard,
-        isInflux: false,
-        defaultAmount: pocketData.targetAmount || 0,
-        notes: pocketData.description,
-      });
+      // TODO: Implement update pocket functionality
+      console.log('Update pocket:', editingPocket.id, pocketData);
       Alert.alert('Success', 'Pocket updated successfully');
     } else {
       // Create new pocket
-      upsertCategory({
-        name: pocketData.name,
-        type: pocketData.type === 'standard' ? 'bank' : 'other',
-        color: pocketData.type === 'goal' ? theme.colors.labelGoal : theme.colors.labelStandard,
-        isInflux: false,
-        defaultAmount: pocketData.targetAmount || 0,
-        notes: pocketData.description,
-      });
+      // TODO: Implement create pocket functionality
+      console.log('Create pocket:', pocketData);
       Alert.alert('Success', 'Pocket created successfully');
     }
     setShowPocketForm(false);
@@ -153,17 +150,10 @@ export default function PocketsScreen() {
     setShowPocketSheet(true);
   };
 
-  const renderPocketItem = ({ item, index }: { item: Pocket; index: number }) => (
-    <PocketsListItem
-      title={item.name}
-      subtitle={item.description}
-      amount={item.currentBalance}
-      type={item.type}
-      targetAmount={item.targetAmount}
-      isRecurring={false}
+  const renderPocketItem = ({ item, index }: { item: any; index: number }) => (
+    <PocketCard
+      pocket={item}
       onPress={() => handlePocketPress(item)}
-      showDivider={index < filteredPockets.length - 1}
-      transactionCount={item.transactionCount}
     />
   );
 
@@ -181,7 +171,11 @@ export default function PocketsScreen() {
   const styles = getStyles(theme);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <Header 
         title="Pockets" 
         rightIcon={
@@ -215,6 +209,8 @@ export default function PocketsScreen() {
                   { useNativeDriver: false }
                 )}
                 scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
               />
             ) : (
               renderEmptyState()
@@ -249,7 +245,7 @@ export default function PocketsScreen() {
         onEdit={handleEditPocketFromSheet}
         onDelete={handleDeletePocket}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -307,7 +303,7 @@ function getStyles(theme: any) {
       marginTop: theme.spacing.md,
     },
     listItemsWrapper: {
-      paddingHorizontal: 20, // 20px padding to match other components
+      paddingHorizontal: 0, // Remove padding since cards now have their own 20px margin
       paddingBottom: 100, // Add bottom padding so content is visible above nav menu
     },
 

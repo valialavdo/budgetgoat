@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import type { IconProps } from 'phosphor-react-native';
 
@@ -31,6 +31,7 @@ export interface LabelPillProps {
   text: string;
   backgroundColor: string;
   textColor: string;
+  onPress?: () => void;
 }
 
 export default function LabelPill({ 
@@ -38,12 +39,13 @@ export default function LabelPill({
   number,
   text, 
   backgroundColor, 
-  textColor
+  textColor,
+  onPress
 }: LabelPillProps) {
   const theme = useTheme();
   const styles = getStyles(theme);
   
-  return (
+  const content = (
     <View style={[
       styles.container,
       { backgroundColor }
@@ -57,7 +59,7 @@ export default function LabelPill({
         </Text>
       ) : icon ? (
         <View style={styles.iconContainer}>
-          {icon}
+          {React.cloneElement(icon, { color: textColor })}
         </View>
       ) : null}
       <Text style={[
@@ -68,6 +70,16 @@ export default function LabelPill({
       </Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 function getStyles(theme: any) {

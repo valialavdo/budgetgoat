@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
-import { useOnboarding } from '../context/OnboardingContext';
+import { useAuth } from '../context/SafeFirebaseContext';
+import { useOnboarding } from '../context/SafeOnboardingContext';
 
 interface DebugInfoProps {
   visible?: boolean;
@@ -10,8 +10,8 @@ interface DebugInfoProps {
 
 export default function DebugInfo({ visible = __DEV__ }: DebugInfoProps) {
   const theme = useTheme();
-  const { isAuthenticated, loading: firebaseLoading, user } = useFirebase();
-  const { hasCompletedOnboarding } = useOnboarding();
+  const { user, loading: firebaseLoading } = useAuth();
+  const { onboardingData } = useOnboarding();
   const styles = getStyles(theme);
 
   if (!visible) return null;
@@ -21,9 +21,9 @@ export default function DebugInfo({ visible = __DEV__ }: DebugInfoProps) {
       <Text style={styles.title}>Debug Info</Text>
       <ScrollView style={styles.scrollView}>
         <Text style={styles.infoText}>Firebase Loading: {firebaseLoading ? 'Yes' : 'No'}</Text>
-        <Text style={styles.infoText}>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</Text>
+        <Text style={styles.infoText}>Authenticated: {user ? 'Yes' : 'No'}</Text>
         <Text style={styles.infoText}>User: {user ? user.email : 'None'}</Text>
-        <Text style={styles.infoText}>Onboarding Completed: {hasCompletedOnboarding === null ? 'Loading...' : hasCompletedOnboarding ? 'Yes' : 'No'}</Text>
+        <Text style={styles.infoText}>Onboarding Completed: {onboardingData === null ? 'Loading...' : onboardingData.isCompleted ? 'Yes' : 'No'}</Text>
         <Text style={styles.infoText}>Theme Mode: {theme.isDark ? 'Dark' : 'Light'}</Text>
         <Text style={styles.infoText}>Platform: {Platform.OS}</Text>
       </ScrollView>

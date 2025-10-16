@@ -3,29 +3,28 @@ import { NavigationContainer, DefaultTheme, Theme } from '@react-navigation/nati
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFirebase } from '../context/FirebaseContext';
-import { useOnboarding } from '../context/OnboardingContext';
+import { useAuth } from '../context/SafeFirebaseContext';
+import { useOnboarding } from '../context/SafeOnboardingContext';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import AuthScreen from '../screens/AuthScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PocketsScreen from '../screens/PocketsScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import AccountScreen from '../screens/AccountScreen';
-// Temporarily comment out problematic imports
-// import NewTransactionScreen from '../screens/NewTransactionScreen';
-// import NewPocketScreen from '../screens/NewPocketScreen';
-// import AppearanceScreen from '../screens/AppearanceScreen';
-// import CurrencyScreen from '../screens/CurrencyScreen';
-// import ExportDataScreen from '../screens/ExportDataScreen';
-// import EditProfileScreen from '../screens/EditProfileScreen';
-// import HelpSupportScreen from '../screens/HelpSupportScreen';
-// import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
-// import AboutAppScreen from '../screens/AboutAppScreen';
-// import RateUsScreen from '../screens/RateUsScreen';
-// import AIInsightsScreen from '../screens/AIInsightsScreen';
-// import TransactionsListScreen from '../screens/TransactionsListScreen';
-// import ProjectionDetailsScreen from '../screens/ProjectionDetailsScreen';
-// import SendToEmailScreen from '../screens/SendToEmailScreen';
+import NewTransactionScreen from '../screens/NewTransactionScreen';
+import NewPocketScreen from '../screens/NewPocketScreen';
+import AppearanceScreen from '../screens/AppearanceScreen';
+import CurrencyScreen from '../screens/CurrencyScreen';
+import ExportDataScreen from '../screens/ExportDataScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import HelpSupportScreen from '../screens/HelpSupportScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import AboutAppScreen from '../screens/AboutAppScreen';
+import RateUsScreen from '../screens/RateUsScreen';
+import AIInsightsScreen from '../screens/AIInsightsScreen';
+import TransactionsListScreen from '../screens/TransactionsListScreen';
+import ProjectionDetailsScreen from '../screens/ProjectionDetailsScreen';
+import SendToEmailScreen from '../screens/SendToEmailScreen';
 import { SquaresFour, Wallet, Receipt, User } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigationContext } from '../context/NavigationContext';
@@ -34,21 +33,20 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Auth: undefined;
   Tabs: undefined;
-  // Temporarily commented out
-  // NewTransaction: undefined;
-  // NewPocket: undefined;
-  // Appearance: undefined;
-  // Currency: undefined;
-  // ExportData: undefined;
-  // EditProfile: undefined;
-  // HelpSupport: undefined;
-  // PrivacyPolicy: undefined;
-  // AboutApp: undefined;
-  // RateUs: undefined;
-  // AIInsights: undefined;
-  // TransactionsList: undefined;
-  // ProjectionDetails: undefined;
-  // SendToEmail: undefined;
+  NewTransaction: undefined;
+  NewPocket: undefined;
+  Appearance: undefined;
+  Currency: undefined;
+  ExportData: undefined;
+  EditProfile: undefined;
+  HelpSupport: undefined;
+  PrivacyPolicy: undefined;
+  AboutApp: undefined;
+  RateUs: undefined;
+  AIInsights: undefined;
+  TransactionsList: undefined;
+  ProjectionDetails: undefined;
+  SendToEmail: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,10 +69,18 @@ function SimpleBottomNavigation({ activeTab, onTabChange }: { activeTab: number;
     return null;
   }
 
-  const styles = getStyles(theme, insets);
+  // Simple theme colors for now
+  const colors = {
+    surface: theme.isDark ? 'rgba(26, 26, 26, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+    border: theme.isDark ? '#333333' : '#e2e8f0',
+    trustBlue: '#0052CC',
+    textMuted: theme.isDark ? '#9ca3af' : '#6b7280',
+  };
+
+  const styles = getStyles(colors, insets);
 
   return (
-    <View style={[styles.navbarContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+    <View style={[styles.navbarContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {TAB_CONFIG.map((tab, index) => {
         const isActive = activeTab === index;
         const Icon = tab.icon;
@@ -93,12 +99,12 @@ function SimpleBottomNavigation({ activeTab, onTabChange }: { activeTab: number;
           >
             <Icon 
               size={24} 
-              color={isActive ? theme.colors.trustBlue : theme.colors.textMuted} 
+              color={isActive ? colors.trustBlue : colors.textMuted} 
               weight={isActive ? "fill" : "light"}
             />
             <Text style={[
               styles.tabLabel,
-              { color: isActive ? theme.colors.trustBlue : theme.colors.textMuted }
+              { color: isActive ? colors.trustBlue : colors.textMuted }
             ]}>
               {tab.label}
             </Text>
@@ -119,7 +125,7 @@ function Tabs() {
   return (
     <View style={{ flex: 1 }}>
       {/* Tab Content */}
-      {activeTab === 0 && <HomeScreen setActiveTab={setActiveTab} />}
+      {activeTab === 0 && <HomeScreen />}
       {activeTab === 1 && <PocketsScreen />}
       {activeTab === 2 && <TransactionsScreen />}
       {activeTab === 3 && <AccountScreen />}
@@ -130,7 +136,7 @@ function Tabs() {
   );
 }
 
-function getStyles(theme: any, insets: any) {
+function getStyles(colors: any, insets: any) {
   return StyleSheet.create({
     navbarContainer: {
       flexDirection: 'row',
@@ -142,11 +148,6 @@ function getStyles(theme: any, insets: any) {
       paddingBottom: 16,
       paddingHorizontal: 14,
       borderWidth: 1,
-      shadowColor: theme.colors.shadow,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
       position: 'absolute',
       bottom: Math.max(insets.bottom, 20), // Use safe area bottom padding
       left: 0,
@@ -173,22 +174,33 @@ function getStyles(theme: any, insets: any) {
 
 export default function RootNavigator() {
   const theme = useTheme();
-  const { isAuthenticated, loading: firebaseLoading } = useFirebase();
-  const { hasCompletedOnboarding, completeOnboarding } = useOnboarding();
+  const { user, loading: firebaseLoading } = useAuth();
+  const isAuthenticated = !!user;
+  const { onboardingData, completeOnboarding } = useOnboarding();
   
   // Show loading screen while contexts are initializing
-  const loading = firebaseLoading || hasCompletedOnboarding === null;
+  const loading = firebaseLoading || onboardingData === null;
+  
+  // Simple theme colors for navigation
+  const colors = {
+    trustBlue: '#0052CC',
+    background: theme.isDark ? '#000000' : '#ffffff',
+    surface: theme.isDark ? '#1a1a1a' : '#ffffff',
+    text: theme.isDark ? '#ffffff' : '#000000',
+    border: theme.isDark ? '#333333' : '#e2e8f0',
+    goatGreen: '#059669',
+  };
   
   const AppTheme: Theme = {
     ...DefaultTheme,
     colors: {
       ...DefaultTheme.colors,
-      primary: theme.colors.trustBlue,
-      background: theme.colors.background,
-      card: theme.colors.surface,
-      text: theme.colors.text,
-      border: theme.colors.border,
-      notification: theme.colors.goatGreen,
+      primary: colors.trustBlue,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      notification: colors.goatGreen,
     },
   };
 
@@ -196,8 +208,8 @@ export default function RootNavigator() {
   if (loading) {
     return (
       <NavigationContainer theme={AppTheme}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
-          <Text style={{ color: theme.colors.text, ...theme.typography.body1 }}>Loading...</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <Text style={{ color: colors.text, fontSize: 16 }}>Loading...</Text>
         </View>
       </NavigationContainer>
     );
@@ -210,7 +222,7 @@ export default function RootNavigator() {
   return (
     <NavigationContainer theme={AppTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!hasCompletedOnboarding ? (
+        {!onboardingData.isCompleted ? (
           <Stack.Screen
             name="Onboarding"
             options={{ headerShown: false }}
@@ -230,66 +242,66 @@ export default function RootNavigator() {
             options={{ headerShown: false }}
           />
         )}
-        {/* <Stack.Screen
+        <Stack.Screen
           name="Appearance"
           component={AppearanceScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="Currency"
           component={CurrencyScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="ExportData"
           component={ExportDataScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="EditProfile"
           component={EditProfileScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="HelpSupport"
           component={HelpSupportScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="PrivacyPolicy"
           component={PrivacyPolicyScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="AboutApp"
           component={AboutAppScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="RateUs"
           component={RateUsScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="AIInsights"
           component={AIInsightsScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="TransactionsList"
           component={TransactionsListScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="ProjectionDetails"
           component={ProjectionDetailsScreen}
           options={{ headerShown: false }}
-        /> */}
-        {/* <Stack.Screen
+        />
+        <Stack.Screen
           name="SendToEmail"
           component={SendToEmailScreen}
           options={{ headerShown: false }}
-        /> */}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

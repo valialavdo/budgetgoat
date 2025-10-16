@@ -1,149 +1,157 @@
+import { AccessibilityHelper } from '../utils/accessibility';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import LabelPill from './LabelPill';
 
 interface PocketCardProps {
-  id: string;
-  name: string;
-  type: 'standard' | 'goal';
-  balance: number;
-  targetAmount?: number;
-  transactionCount: number;
-  onPress?: () => void;
-  isFirst?: boolean;
+  pocket: {
+    id: string;
+    name: string;
+    type: 'standard' | 'goal';
+    currentBalance: number;
+    targetAmount?: number;
+    description: string;
+    color: string;
+    category: string;
+  };
+  onPress: (pocket: any) => void;
 }
 
-export default function PocketCard({ 
-  id, 
-  name, 
-  type, 
-  balance, 
-  targetAmount = 0, 
-  transactionCount, 
-  onPress,
-  isFirst = false
-}: PocketCardProps) {
+export default function PocketCard({ pocket, onPress }: PocketCardProps) {
   const theme = useTheme();
   const styles = getStyles(theme);
-  const isGoalPocket = type === 'goal';
-  
+
+  // Calculate progress percentage for goal-oriented pockets
+  const progressPercentage = pocket.type === 'goal' && pocket.targetAmount && pocket.targetAmount > 0
+    ? Math.min((pocket.currentBalance / pocket.targetAmount) * 100, 100)
+    : 0;
+
+  // Helper function to truncate text with + indicator
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + `+${text.length - maxLength}`;
+  };
+
   return (
-    <TouchableOpacity style={isFirst ? styles.firstPocketCard : styles.pocketCard} onPress={onPress}>
-      <View style={styles.titleContainer}>
-        <Text 
-          style={styles.pocketTitle} 
-          numberOfLines={2}
-          ellipsizeMode="tail"
-        >
-          {name}
-        </Text>
-      </View>
-      
-      <View style={styles.pocketMainMetric}>
-        <Text style={styles.pocketBalance}>
-          {Math.abs(balance).toLocaleString('de-DE')}€
-        </Text>
-        <LabelPill 
-          number={transactionCount} 
-          text="transactions"
-          backgroundColor={theme.colors.numericLabel + '15'}
-          textColor={theme.colors.numericLabel}
-        />
-      </View>
-      
-      {isGoalPocket && targetAmount > 0 ? (
-        <View style={styles.goalSection}>
-          <Text style={styles.goalText}>
-            Goal: {targetAmount.toLocaleString('de-DE')}€
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onPress(pocket)}
+      activeOpacity={0.7}
+      accessibilityLabel={AccessibilityHelper.getPocketLabel({
+        name: pocket.name,
+        currentBalance: pocket.currentBalance,
+        targetAmount: pocket.targetAmount,
+        type: pocket.type
+      })}
+      accessibilityHint={AccessibilityHelper.getPocketHint({
+        name: pocket.name,
+        type: pocket.type
+      })}
+      accessibilityRole="button"
+    >
+      <View style={styles.cardContent}>
+        {/* Title and Amount */}
+        <View style={styles.pocketRow}>
+          <Text style={[styles.pocketName, { color: theme.colors.textMuted }]}>
+            {truncateText(pocket.name, 25)}
           </Text>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { width: `${Math.min((Math.abs(balance) / targetAmount) * 100, 100)}%` } 
-              ]} 
-            />
-          </View>
+          <Text style={[styles.pocketAmount, { color: theme.colors.text }]}>
+            €{pocket.currentBalance.toFixed(0)}
+          </Text>
         </View>
-      ) : (
-        <Text style={styles.descriptionText}>
-          {type === 'standard' ? 'Standard pocket' : 'Goal pocket'}
+        
+        {/* Target amount for goal-oriented pockets */}
+        {pocket.type === 'goal' && pocket.targetAmount && (
+          <Text style={[styles.pocketTarget, { color: theme.colors.textMuted }]}>
+            out of €{pocket.targetAmount.toFixed(0)}
+          </Text>
+        )}
+        
+        {/* Category label */}
+        <Text style={[styles.pocketCategory, { color: theme.colors.textMuted }]}>
+          {pocket.category}
         </Text>
-      )}
+
+        {/* Progress bar for goal-oriented pockets */}
+        {pocket.type === 'goal' && pocket.targetAmount && pocket.targetAmount > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { backgroundColor: theme.colors.borderLight }]}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${progressPercentage}%`,
+                    backgroundColor: pocket.color || theme.colors.goatGreen
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={[styles.progressText, { color: theme.colors.textMuted }]}>
+              {progressPercentage.toFixed(0)}% complete
+            </Text>
+          </View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
 
 function getStyles(theme: any) {
   return StyleSheet.create({
-  pocketCard: {
-    width: 154,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginRight: 12, // Spacing between cards
-    // Ensure no background interference with overflow
-    overflow: 'visible',
-  },
-  firstPocketCard: {
-    width: 154,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginLeft: theme.spacing.screenPadding, // Only first card starts at screen edge (aligned with title)
-    marginRight: 12, // Spacing between cards
-    // Ensure no background interference with overflow
-    overflow: 'visible',
-  },
-  titleContainer: {
-    height: 48, // Fixed height for consistent alignment (2 lines * 24px line height)
-    justifyContent: 'flex-start', // Changed from 'center' to align titles at top
-    marginBottom: theme.spacing.xs,
-  },
-  pocketTitle: {
-    ...theme.typography.bodyMedium,
-    color: theme.colors.text,
-    textAlign: 'left',
-  },
-  pocketMainMetric: {
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.xs, // Reduced from theme.spacing.sm
-    gap: theme.spacing.xs, // Reduced from theme.spacing.sm
-  },
-  pocketBalance: {
-    ...theme.typography.h4, // Changed from h3 to h4 for consistent amount sizing
-    color: theme.colors.text,
-    textAlign: 'left',
-  },
-  goalSection: {
-    marginTop: 2, // Back to original spacing
-  },
-  goalText: {
-    ...theme.typography.caption,
-    color: theme.colors.text,
-    marginBottom: 8, // Increased from 6px to 8px for more breathing room
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: theme.colors.borderLight,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.trustBlue,
-    borderRadius: 3,
-  },
-  descriptionText: {
-    ...theme.typography.caption,
-    color: theme.colors.textMuted,
-    marginTop: 2, // Reduced from theme.spacing.xs
-    textAlign: 'left',
-  },
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      minHeight: 100, // Uniform height for all cards
+    },
+    cardContent: {
+      flex: 1,
+    },
+    pocketRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    pocketName: {
+      fontSize: 16,
+      fontWeight: '500',
+      flexShrink: 1,
+      marginRight: 8,
+    },
+    pocketAmount: {
+      fontSize: 20,
+      fontWeight: '500',
+      textAlign: 'right',
+    },
+    pocketTarget: {
+      fontSize: 12,
+      fontWeight: '400',
+      marginBottom: 4,
+      textAlign: 'right',
+    },
+    pocketCategory: {
+      fontSize: 12,
+      fontWeight: '400',
+      marginBottom: 8,
+    },
+    progressContainer: {
+      marginTop: 8,
+    },
+    progressBar: {
+      height: 6,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginBottom: 4,
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    progressText: {
+      fontSize: 10,
+      fontWeight: '400',
+      textAlign: 'right',
+    },
   });
 }

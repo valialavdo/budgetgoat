@@ -1,11 +1,9 @@
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
-const config = getDefaultConfig(__dirname);
+/**
+ * Metro configuration
+ * https://facebook.github.io/metro/docs/configuration
+ */
+const config = {};
 
-// Remove Expo-specific configurations
-config.resolver.platforms = ['ios', 'android', 'native', 'web'];
-
-// Ensure proper module resolution
-config.resolver.sourceExts = ['js', 'jsx', 'json', 'ts', 'tsx'];
-
-module.exports = config;
+module.exports = mergeConfig(getDefaultConfig(__dirname), config);

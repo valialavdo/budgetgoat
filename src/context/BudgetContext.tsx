@@ -1,325 +1,282 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { BudgetState, BudgetMonth, Category, CategoryAmountOverride, EditOptions, MonthKey, Totals, AllocationRule, Transaction, PocketBalances } from '../types';
-import { getCurrentMonthKey, getNextMonthKey, toMonthKey } from '../utils/date';
-import { loadState, saveState } from '../storage/storage';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Pocket, Transaction, BudgetInsight, MonthlyData, ChartData } from '../types/budget';
+import { useToast } from './SafeToastContext';
 
-interface BudgetContextValue {
-  state: BudgetState;
-  ready: boolean;
-  ensureMonth(month: MonthKey): void;
-  upsertCategory(category: Partial<Category> & Pick<Category, 'name' | 'type' | 'isInflux' | 'color'>): void;
-  deleteCategories(ids: string[]): void;
-  updateCategoryAmount(categoryId: string, amount: number, month: MonthKey, options?: EditOptions): void;
-  computeTotals(month: MonthKey): Totals;
-  setAllocationRules(incomeCategoryId: string, rules: AllocationRule[], month?: MonthKey, propagate?: boolean): void;
-  addTransaction(t: Omit<Transaction, 'id'>): void;
-  computePocketBalancesUpTo(month: MonthKey): PocketBalances;
+interface BudgetContextType {
+  // Pockets
+  pockets: Pocket[];
+  loading: boolean;
+  
+  // Pocket methods
+  addPocket: (pocket: Omit<Pocket, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; error?: string }>;
+  updatePocket: (id: string, updates: Partial<Pocket>) => Promise<{ success: boolean; error?: string }>;
+  deletePocket: (id: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // Transactions
+  transactions: Transaction[];
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => Promise<{ success: boolean; error?: string }>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<{ success: boolean; error?: string }>;
+  deleteTransaction: (id: string) => Promise<{ success: boolean; error?: string }>;
+  
+  // Insights
+  insights: BudgetInsight[];
+  generateInsights: () => void;
+  
+  // Chart data
+  getChartData: () => ChartData;
+  getMonthlyData: () => MonthlyData;
+  
+  // Calculations
+  getTotalBudget: () => number;
+  getTotalSpent: () => number;
+  getTotalSavings: () => number;
+  getPocketSpentPercentage: (pocketId: string) => number;
 }
 
-export const BudgetContext = createContext<BudgetContextValue>({} as any);
+const BudgetContext = createContext<BudgetContextType | undefined>(undefined);
 
-function createDefaultState(): BudgetState {
-  const now = new Date();
-  const currentMonth = toMonthKey(now);
-  const nextMonth = getNextMonthKey(currentMonth);
-  const salaryId = 'cat-salary';
-  const revolutId = 'cat-revolut';
-  const piraeusId = 'cat-piraeus';
-  const xtraId = 'cat-xtra';
-
-  const categories: Category[] = [
-    {
-      id: salaryId,
-      name: 'Salary',
-      type: 'income',
-      color: '#16a34a',
-      defaultAmount: 5000,
-      isInflux: true,
-      recurrence: { isRecurring: true, timing: null },
-    },
-    {
-      id: revolutId,
-      name: 'Revolut Bank',
-      type: 'bank',
-      color: '#3b82f6',
-      defaultAmount: 2000,
-      isInflux: false,
-      recurrence: { isRecurring: true, timing: 'lastWorkingDay' },
-    },
-    {
-      id: piraeusId,
-      name: 'Other Bank (Piraeus)',
-      type: 'bank',
-      color: '#0ea5e9',
-      defaultAmount: 3000,
-      isInflux: false,
-      recurrence: { isRecurring: true, timing: 'lastWorkingDay' },
-    },
-    {
-      id: xtraId,
-      name: 'XTRA Money',
-      type: 'extra',
-      color: '#a855f7',
-      defaultAmount: 0,
-      isInflux: false,
-      recurrence: { isRecurring: true, timing: null },
-    },
-  ];
-
-  const initialMonth: BudgetMonth = {
-    month: currentMonth,
-    overrides: categories.map(c => ({ categoryId: c.id, amount: c.defaultAmount })),
-  };
-  const nextMonthBudget: BudgetMonth = {
-    month: nextMonth,
-    overrides: categories.map(c => ({ categoryId: c.id, amount: c.defaultAmount })),
-  };
-
-  return {
-    categories,
-    budgetsByMonth: {
-      [currentMonth]: initialMonth,
-      [nextMonth]: nextMonthBudget,
-    },
-    lastOpenedMonth: currentMonth,
-    allocationRules: {
-      [salaryId]: [
-        { targetCategoryId: revolutId, mode: 'amount', value: 2000 },
-        { targetCategoryId: piraeusId, mode: 'amount', value: 3000 },
-      ],
-    },
-    transactionsByMonth: { [currentMonth]: [], [nextMonth]: [] },
-  };
+interface BudgetProviderProps {
+  children: ReactNode;
 }
 
-export function BudgetProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<BudgetState>(createDefaultState());
-  const [ready, setReady] = useState(false);
+export function BudgetProvider({ children }: BudgetProviderProps) {
+  const [pockets, setPockets] = useState<Pocket[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [insights, setInsights] = useState<BudgetInsight[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const { showSuccess, showError, showWarning } = useToast();
 
-  useEffect(() => {
-    (async () => {
-      const loaded = await loadState();
-      if (loaded) setState(loaded);
-      setReady(true);
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (ready) saveState(state);
-  }, [ready, state]);
-
-  const ensureMonth = useCallback((month: MonthKey) => {
-    setState(prev => {
-      if (prev.budgetsByMonth[month]) return prev;
-      const overrides: CategoryAmountOverride[] = prev.categories.map(c => ({ categoryId: c.id, amount: c.defaultAmount }));
-      const bm: BudgetMonth = { month, overrides };
-      return {
-        ...prev,
-        budgetsByMonth: { ...prev.budgetsByMonth, [month]: bm },
+  // Mock implementation - no Firestore dependency
+  const addPocket = async (pocketData: Omit<Pocket, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const pocket: Pocket = {
+        ...pocketData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
-    });
-  }, []);
-
-  const upsertCategory = useCallback((category: Partial<Category> & Pick<Category, 'name' | 'type' | 'isInflux' | 'color'>) => {
-    setState(prev => {
-      const existing = category.id ? prev.categories.find(c => c.id === category.id) : undefined;
-      if (existing) {
-        const updated: Category = { ...existing, ...category } as Category;
-        const categories = prev.categories.map(c => (c.id === updated.id ? updated : c));
-        return { ...prev, categories };
-      }
-      const id = `cat-${Math.random().toString(36).slice(2, 9)}`;
-      const newCat: Category = {
-        id,
-        name: category.name,
-        type: category.type,
-        color: category.color,
-        isInflux: category.isInflux,
-        defaultAmount: (category as any).defaultAmount ?? 0,
-        recurrence: (category as any).recurrence ?? { isRecurring: true, timing: null },
-      } as Category;
-      return { ...prev, categories: [...prev.categories, newCat] };
-    });
-  }, []);
-
-  const deleteCategories = useCallback((ids: string[]) => {
-    setState(prev => {
-      const idSet = new Set(ids);
-      const categories = prev.categories.filter(c => !idSet.has(c.id));
-      // Remove overrides for removed categories
-      const budgetsByMonth: typeof prev.budgetsByMonth = Object.fromEntries(
-        Object.entries(prev.budgetsByMonth).map(([m, bm]) => [m, { ...bm, overrides: bm.overrides.filter(o => !idSet.has(o.categoryId)) }])
-      );
-      // Clean allocation rules: drop rules for removed incomes and targets
-      const allocationRules: typeof prev.allocationRules = {};
-      for (const [incomeId, rules] of Object.entries(prev.allocationRules || {})) {
-        if (idSet.has(incomeId)) continue;
-        const filtered = rules.filter(r => !idSet.has(r.targetCategoryId));
-        if (filtered.length) allocationRules[incomeId] = filtered;
-      }
-      // Remove transactions targeting removed pockets
-      const transactionsByMonth: typeof prev.transactionsByMonth = Object.fromEntries(
-        Object.entries(prev.transactionsByMonth || {}).map(([m, list]) => [m, list.filter(tx => !idSet.has(tx.pocketCategoryId))])
-      );
-      return { ...prev, categories, budgetsByMonth, allocationRules, transactionsByMonth };
-    });
-  }, []);
-
-  const updateCategoryAmount = useCallback((categoryId: string, amount: number, month: MonthKey, options?: EditOptions) => {
-    setState(prev => {
-      const budgetsByMonth = { ...prev.budgetsByMonth };
-      const target = budgetsByMonth[month] ?? { month, overrides: [] };
-      const existing = target.overrides.find(o => o.categoryId === categoryId);
-      if (existing) existing.amount = amount; else target.overrides.push({ categoryId, amount });
-      budgetsByMonth[month] = target;
-
-      // If changing an income category that has allocation rules, apply them
-      const category = prev.categories.find(c => c.id === categoryId);
-      if (category?.isInflux && prev.allocationRules[categoryId]) {
-        const rules = prev.allocationRules[categoryId];
-        let remaining = amount;
-        // Apply amount-based first
-        for (const r of rules.filter(r => r.mode === 'amount')) {
-          const amt = Math.min(r.value, Math.max(0, remaining));
-          const m = budgetsByMonth[month] ?? { month, overrides: [] };
-          const ov = m.overrides.find(o => o.categoryId === r.targetCategoryId);
-          if (ov) ov.amount = amt; else m.overrides.push({ categoryId: r.targetCategoryId, amount: amt });
-          budgetsByMonth[month] = m;
-          remaining -= amt;
-        }
-        // Then percent-based
-        const pctRules = rules.filter(r => r.mode === 'percent');
-        const totalPct = pctRules.reduce((s, r) => s + r.value, 0);
-        for (const r of pctRules) {
-          const amt = totalPct > 0 ? (remaining * r.value) / totalPct : 0;
-          const m = budgetsByMonth[month] ?? { month, overrides: [] };
-          const ov = m.overrides.find(o => o.categoryId === r.targetCategoryId);
-          if (ov) ov.amount = amt; else m.overrides.push({ categoryId: r.targetCategoryId, amount: amt });
-          budgetsByMonth[month] = m;
-        }
-      }
-
-      if (options?.propagateToFuture) {
-        const months = Object.keys(prev.budgetsByMonth).sort();
-        for (const m of months) {
-          if (m >= month) {
-            const copy = budgetsByMonth[m] ?? { month: m, overrides: [] };
-            const o = copy.overrides.find(v => v.categoryId === categoryId);
-            if (o) o.amount = amount; else copy.overrides.push({ categoryId, amount });
-            budgetsByMonth[m] = copy;
-          }
-        }
-      }
-      return { ...prev, budgetsByMonth };
-    });
-  }, []);
-
-  const computeTotals = useCallback((month: MonthKey): Totals => {
-    const bm = state.budgetsByMonth[month];
-    if (!bm) return { totalIncome: 0, totalOutflow: 0, remaining: 0 };
-    const categoryById = Object.fromEntries(state.categories.map(c => [c.id, c]));
-    let income = 0;
-    let out = 0;
-    for (const o of bm.overrides) {
-      const cat = categoryById[o.categoryId];
-      if (!cat) continue;
-      if (cat.isInflux) income += o.amount; else out += o.amount;
+      
+      setPockets(prev => [...prev, pocket]);
+      showSuccess('Success', 'Pocket added successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to add pocket');
+      return { success: false, error: error.message };
     }
-    return { totalIncome: income, totalOutflow: out, remaining: income - out };
-  }, [state.budgetsByMonth, state.categories]);
+  };
 
-
-  const setAllocationRules = useCallback((incomeCategoryId: string, rules: AllocationRule[], month?: MonthKey, propagate?: boolean) => {
-    setState(prev => {
-      const allocationRules = { ...prev.allocationRules, [incomeCategoryId]: rules };
-      const budgetsByMonth = { ...prev.budgetsByMonth };
-      if (month) {
-        const incomeOv = budgetsByMonth[month]?.overrides.find(o => o.categoryId === incomeCategoryId);
-        const amount = incomeOv?.amount ?? prev.categories.find(c => c.id === incomeCategoryId)?.defaultAmount ?? 0;
-        // Re-run allocation using the same logic as in updateCategoryAmount
-        let remaining = amount;
-        const applyTo = (mKey: string) => {
-          const m = budgetsByMonth[mKey] ?? { month: mKey, overrides: [] };
-          // amount-based first
-          for (const r of rules.filter(r => r.mode === 'amount')) {
-            const amt = Math.min(r.value, Math.max(0, remaining));
-            const ov = m.overrides.find(o => o.categoryId === r.targetCategoryId);
-            if (ov) ov.amount = amt; else m.overrides.push({ categoryId: r.targetCategoryId, amount: amt });
-            remaining -= amt;
-          }
-          // percent-based
-          const pctRules = rules.filter(r => r.mode === 'percent');
-          const totalPct = pctRules.reduce((s, r) => s + r.value, 0);
-          for (const r of pctRules) {
-            const amt = totalPct > 0 ? (remaining * r.value) / totalPct : 0;
-            const ov = m.overrides.find(o => o.categoryId === r.targetCategoryId);
-            if (ov) ov.amount = amt; else m.overrides.push({ categoryId: r.targetCategoryId, amount: amt });
-          }
-          budgetsByMonth[mKey] = m;
-        };
-        applyTo(month);
-        if (propagate) {
-          const months = Object.keys(prev.budgetsByMonth).sort();
-          for (const mkey of months) if (mkey >= month) applyTo(mkey);
-        }
-      }
-      return { ...prev, allocationRules, budgetsByMonth };
-    });
-  }, []);
-
-  const addTransaction = useCallback((t: Omit<Transaction, 'id'>) => {
-    setState(prev => {
-      const month = t.month;
-      const list = (prev.transactionsByMonth && prev.transactionsByMonth[month]) || [];
-      const tx: Transaction = { id: `tx-${Math.random().toString(36).slice(2, 9)}`, ...t };
-      const transactionsByMonth = { ...(prev.transactionsByMonth || {}), [month]: [...list, tx] };
-      return { ...prev, transactionsByMonth };
-    });
-  }, []);
-
-  const computePocketBalancesUpTo = useCallback((month: MonthKey): PocketBalances => {
-    const months = Object.keys(state.budgetsByMonth).sort().filter(m => m <= month);
-    const balances: PocketBalances = {};
-    const bankIds = state.categories.filter(c => !c.isInflux).map(c => c.id);
-    for (const id of bankIds) balances[id] = 0;
-
-    for (const m of months) {
-      const bm = state.budgetsByMonth[m];
-      if (!bm) continue;
-      // Allocate incomes into pockets according to rules
-      for (const cat of state.categories) {
-        if (!cat.isInflux) continue;
-        const ov = bm.overrides.find(o => o.categoryId === cat.id);
-        const amount = ov?.amount ?? cat.defaultAmount;
-        const rules = state.allocationRules[cat.id] || [];
-        let remaining = amount;
-        for (const r of rules.filter(r => r.mode === 'amount')) {
-          const add = Math.min(r.value, Math.max(0, remaining));
-          balances[r.targetCategoryId] = (balances[r.targetCategoryId] || 0) + add;
-          remaining -= add;
-        }
-        const pctRules = rules.filter(r => r.mode === 'percent');
-        const totalPct = pctRules.reduce((s, r) => s + r.value, 0);
-        for (const r of pctRules) {
-          const add = totalPct > 0 ? (remaining * r.value) / totalPct : 0;
-          balances[r.targetCategoryId] = (balances[r.targetCategoryId] || 0) + add;
-        }
-      }
-      // Apply pocket transactions for the month
-      const txs = (state.transactionsByMonth && state.transactionsByMonth[m]) || [];
-      for (const tx of txs) {
-        if (tx.type === 'expense') {
-          balances[tx.pocketCategoryId] = (balances[tx.pocketCategoryId] || 0) - tx.amount;
-        } else if (tx.type === 'income') {
-          balances[tx.pocketCategoryId] = (balances[tx.pocketCategoryId] || 0) + tx.amount;
-        }
-      }
+  const updatePocket = async (id: string, updates: Partial<Pocket>) => {
+    try {
+      setPockets(prev => prev.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p));
+      showSuccess('Success', 'Pocket updated successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to update pocket');
+      return { success: false, error: error.message };
     }
-    return balances;
-  }, [state.budgetsByMonth, state.categories, state.allocationRules, state.transactionsByMonth]);
+  };
 
-  const ctx: BudgetContextValue = useMemo(() => ({ state, ready, ensureMonth, upsertCategory, deleteCategories, updateCategoryAmount, computeTotals, setAllocationRules, addTransaction, computePocketBalancesUpTo }), [state, ready, ensureMonth, upsertCategory, deleteCategories, updateCategoryAmount, computeTotals, setAllocationRules, addTransaction, computePocketBalancesUpTo]);
-  return <BudgetContext.Provider value={ctx}>{children}</BudgetContext.Provider>;
+  const deletePocket = async (id: string) => {
+    try {
+      setPockets(prev => prev.filter(p => p.id !== id));
+      setTransactions(prev => prev.filter(t => t.pocketId !== id));
+      showSuccess('Success', 'Pocket deleted successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to delete pocket');
+      return { success: false, error: error.message };
+    }
+  };
+
+  const addTransaction = async (transactionData: Omit<Transaction, 'id' | 'createdAt'>) => {
+    try {
+      const transaction: Transaction = {
+        ...transactionData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+      };
+      
+      setTransactions(prev => [...prev, transaction]);
+      
+      // Update pocket spent amount
+      const pocket = pockets.find(p => p.id === transaction.pocketId);
+      if (pocket) {
+        const newSpent = pocket.spent + (transaction.type === 'expense' ? transaction.amount : -transaction.amount);
+        await updatePocket(transaction.pocketId, { spent: Math.max(0, newSpent) });
+      }
+      
+      showSuccess('Success', 'Transaction added successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to add transaction');
+      return { success: false, error: error.message };
+    }
+  };
+
+  const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    try {
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+      showSuccess('Success', 'Transaction updated successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to update transaction');
+      return { success: false, error: error.message };
+    }
+  };
+
+  const deleteTransaction = async (id: string) => {
+    try {
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      showSuccess('Success', 'Transaction deleted successfully!');
+      generateInsights();
+      return { success: true };
+    } catch (error: any) {
+      showError('Error', 'Failed to delete transaction');
+      return { success: false, error: error.message };
+    }
+  };
+
+  const generateInsights = () => {
+    const newInsights: BudgetInsight[] = [];
+    
+    // Check for overspending
+    pockets.forEach(pocket => {
+      const percentage = (pocket.spent / pocket.budget) * 100;
+      if (percentage > 100) {
+        newInsights.push({
+          id: `overspend-${pocket.id}`,
+          type: 'warning',
+          title: 'Overspending Alert',
+          message: `You've exceeded your ${pocket.name} budget by ${(percentage - 100).toFixed(1)}%`,
+          action: 'Review expenses',
+          createdAt: new Date(),
+        });
+      } else if (percentage > 80) {
+        newInsights.push({
+          id: `warning-${pocket.id}`,
+          type: 'warning',
+          title: 'Budget Warning',
+          message: `You've used ${percentage.toFixed(1)}% of your ${pocket.name} budget`,
+          action: 'Monitor spending',
+          createdAt: new Date(),
+        });
+      }
+    });
+    
+    // Check for good savings
+    const totalSavings = getTotalSavings();
+    if (totalSavings > 0) {
+      newInsights.push({
+        id: 'savings-positive',
+        type: 'success',
+        title: 'Great Job!',
+        message: `You've saved $${totalSavings.toFixed(2)} this month`,
+        action: 'Keep it up!',
+        createdAt: new Date(),
+      });
+    }
+    
+    // Check for no transactions
+    if (transactions.length === 0) {
+      newInsights.push({
+        id: 'no-transactions',
+        type: 'info',
+        title: 'Get Started',
+        message: 'Add your first transaction to start tracking your budget',
+        action: 'Add transaction',
+        createdAt: new Date(),
+      });
+    }
+    
+    setInsights(newInsights);
+  };
+
+  const getChartData = (): ChartData => {
+    const labels = pockets.map(p => p.name);
+    const budgetData = pockets.map(p => p.budget);
+    const spentData = pockets.map(p => p.spent);
+    
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Budget',
+          data: budgetData,
+          color: '#007BFF',
+        },
+        {
+          label: 'Spent',
+          data: spentData,
+          color: '#DC3545',
+        },
+      ],
+    };
+  };
+
+  const getMonthlyData = (): MonthlyData => {
+    const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const totalBudget = getTotalBudget();
+    const totalSpent = getTotalSpent();
+    const savings = totalBudget - totalSpent;
+    
+    return {
+      month: currentMonth,
+      totalBudget,
+      totalSpent,
+      savings,
+      transactions: transactions.filter(t => 
+        t.date.getMonth() === new Date().getMonth() && 
+        t.date.getFullYear() === new Date().getFullYear()
+      ),
+    };
+  };
+
+  const getTotalBudget = () => pockets.reduce((sum, pocket) => sum + pocket.budget, 0);
+  const getTotalSpent = () => pockets.reduce((sum, pocket) => sum + pocket.spent, 0);
+  const getTotalSavings = () => getTotalBudget() - getTotalSpent();
+  const getPocketSpentPercentage = (pocketId: string) => {
+    const pocket = pockets.find(p => p.id === pocketId);
+    if (!pocket) return 0;
+    return (pocket.spent / pocket.budget) * 100;
+  };
+
+  const value: BudgetContextType = {
+    pockets,
+    loading,
+    addPocket,
+    updatePocket,
+    deletePocket,
+    transactions,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    insights,
+    generateInsights,
+    getChartData,
+    getMonthlyData,
+    getTotalBudget,
+    getTotalSpent,
+    getTotalSavings,
+    getPocketSpentPercentage,
+  };
+
+  return (
+    <BudgetContext.Provider value={value}>
+      {children}
+    </BudgetContext.Provider>
+  );
 }
 
-
+export function useBudget() {
+  const context = useContext(BudgetContext);
+  if (context === undefined) {
+    throw new Error('useBudget must be used within a BudgetProvider');
+  }
+  return context;
+}

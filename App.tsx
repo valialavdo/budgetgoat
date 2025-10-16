@@ -1,51 +1,51 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeFirebaseProvider } from './src/context/SafeFirebaseContext';
+import { ThemeProvider } from './src/context/ThemeContext';
+import { SafeOnboardingProvider } from './src/context/SafeOnboardingContext';
+import { SafeToastProvider } from './src/context/SafeToastContext';
+import { SafeBudgetProvider } from './src/context/SafeBudgetContext';
+import { MicroInteractionsProvider } from './src/context/MicroInteractionsContext';
+import { NavigationProvider } from './src/context/NavigationContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
+import RootNavigator from './src/navigation/RootNavigator';
+
+// Main App Component
 
 export default function App() {
-  const handlePress = () => {
-    Alert.alert('Success!', 'The app is working!');
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>BudgetGOAT</Text>
-      <Text style={styles.subtitle}>App is working!</Text>
-      <TouchableOpacity style={styles.button} onPress={handlePress}>
-        <Text style={styles.buttonText}>Test Button</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <SafeFirebaseProvider>
+          <ErrorBoundary>
+            <ThemeProvider>
+              <ErrorBoundary>
+                <SafeOnboardingProvider>
+                  <ErrorBoundary>
+                    <SafeToastProvider>
+                      <ErrorBoundary>
+                        <MicroInteractionsProvider>
+                          <ErrorBoundary>
+                            <NavigationProvider>
+                              <ErrorBoundary>
+                                <SafeBudgetProvider>
+                                  <ErrorBoundary>
+                                    <RootNavigator />
+                                  </ErrorBoundary>
+                                </SafeBudgetProvider>
+                              </ErrorBoundary>
+                            </NavigationProvider>
+                          </ErrorBoundary>
+                        </MicroInteractionsProvider>
+                      </ErrorBoundary>
+                    </SafeToastProvider>
+                  </ErrorBoundary>
+                </SafeOnboardingProvider>
+              </ErrorBoundary>
+            </ThemeProvider>
+          </ErrorBoundary>
+        </SafeFirebaseProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666666',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#007BFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

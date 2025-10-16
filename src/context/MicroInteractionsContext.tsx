@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as Haptics from 'expo-haptics';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface MicroInteractionsContextType {
@@ -61,7 +61,7 @@ export function MicroInteractionsProvider({ children }: MicroInteractionsProvide
     
     // Provide haptic feedback for the toggle itself
     if (newValue) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      ReactNativeHapticFeedback.trigger('impactLight');
     }
   };
 
@@ -72,7 +72,7 @@ export function MicroInteractionsProvider({ children }: MicroInteractionsProvide
     
     // Provide haptic feedback for the toggle itself
     if (hapticEnabled) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      ReactNativeHapticFeedback.trigger('impactLight');
     }
   };
 
@@ -82,22 +82,22 @@ export function MicroInteractionsProvider({ children }: MicroInteractionsProvide
     try {
       switch (type) {
         case 'light':
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          ReactNativeHapticFeedback.trigger('impactLight');
           break;
         case 'medium':
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          ReactNativeHapticFeedback.trigger('impactMedium');
           break;
         case 'heavy':
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          ReactNativeHapticFeedback.trigger('impactHeavy');
           break;
         case 'success':
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          ReactNativeHapticFeedback.trigger('notificationSuccess');
           break;
         case 'warning':
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          ReactNativeHapticFeedback.trigger('notificationWarning');
           break;
         case 'error':
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          ReactNativeHapticFeedback.trigger('notificationError');
           break;
       }
     } catch (error) {

@@ -12,7 +12,7 @@ import {
   Animated,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { BudgetContext } from '../context/BudgetContext';
+import { useBudget } from '../context/SafeBudgetContext';
 import { useNavigation } from '@react-navigation/native';
 import SecondaryHeader from '../components/SecondaryHeader';
 import BaseBottomSheet from '../components/BaseBottomSheet';
@@ -84,7 +84,7 @@ const FILE_FORMATS = [
 
 export default function ExportDataScreen() {
   const theme = useTheme();
-  const { state } = useContext(BudgetContext);
+  const { pockets, transactions, goals, insights } = useBudget();
   const navigation = useNavigation();
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedFormat, setSelectedFormat] = useState('csv');

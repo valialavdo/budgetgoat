@@ -195,53 +195,62 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   );
 }
 
-function getStyles(theme: any, insets: any) {
+function getStyles(theme: 'light' | 'dark', insets: any) {
+  const colors = {
+    background: theme === 'dark' ? '#000000' : '#ffffff',
+    surface: theme === 'dark' ? '#1a1a1a' : '#f8f9fa',
+    text: theme === 'dark' ? '#ffffff' : '#0f172a',
+    textMuted: theme === 'dark' ? '#9ca3af' : '#475569',
+    trustBlue: '#0052CC',
+    border: theme === 'dark' ? '#333333' : '#e2e8f0',
+  };
+
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.background,
+      backgroundColor: colors.background,
       paddingTop: insets.top, // Safe area top padding
     },
     contentContainer: {
       flex: 1,
-      paddingTop: theme.spacing.xl, // Additional top padding
+      paddingTop: 24, // Additional top padding
     },
     cardContainer: {
       flex: 1,
       justifyContent: 'center',
     },
     dotsContainer: {
-      paddingVertical: theme.spacing.lg,
-      paddingBottom: theme.spacing.md,
+      paddingVertical: 20,
+      paddingBottom: 16,
     },
     skipContainer: {
-      paddingHorizontal: theme.spacing.screenPadding,
-      paddingBottom: theme.spacing.md,
+      paddingHorizontal: 20,
+      paddingBottom: 16,
     },
     skipButton: {
       backgroundColor: 'transparent',
       borderWidth: 1,
-      borderColor: theme.colors.textMuted,
+      borderColor: colors.textMuted,
     },
     authButtonsContainer: {
       width: '100%',
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: 20,
     },
     footer: {
       alignItems: 'center',
-      paddingHorizontal: theme.spacing.screenPadding,
-      paddingTop: theme.spacing.lg,
-      paddingBottom: Math.max(insets.bottom + theme.spacing.lg, theme.spacing.xl),
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: Math.max(insets.bottom + 20, 24),
     },
     footerText: {
-      ...theme.typography.h4,
-      color: theme.colors.text,
+      fontSize: 24,
+      color: colors.text,
       fontWeight: '700',
-      marginBottom: theme.spacing.xs,
+      marginBottom: 8,
     },
     footerSubtext: {
-      ...theme.typography.bodySmall,
-      color: theme.colors.textMuted,
+      fontSize: 14,
+      color: colors.textMuted,
       opacity: 0.7,
     },
   });

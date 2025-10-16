@@ -11,14 +11,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
+import { useAuth } from '../context/SafeFirebaseContext';
 import Input from '../components/Input';
 import ActionButton from '../components/ActionButton';
 import { useNavigation } from '@react-navigation/native';
 
 export default function AuthScreen() {
   const theme = useTheme();
-  const { signIn, signUp } = useFirebase();
+  const { signIn, signUp } = useAuth();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const styles = getStyles(theme, insets);

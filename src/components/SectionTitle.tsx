@@ -15,7 +15,7 @@ interface SectionTitleProps {
 export default function SectionTitle({ 
   title, 
   rightButton, 
-  marginBottom = 12 
+  marginBottom = 16 
 }: SectionTitleProps) {
   const theme = useTheme();
   const styles = getStyles(theme);
@@ -48,9 +48,8 @@ function getStyles(theme: any) {
       justifyContent: 'space-between',
     },
     title: {
-      ...theme.typography.h3,
+      ...theme.typography.subtitle1,
       color: theme.colors.text,
-      fontWeight: '700', // Ensure bold weight for section titles
     },
     rightButton: {
       flexDirection: 'row',

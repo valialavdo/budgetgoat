@@ -34,6 +34,21 @@ export interface InputProps {
   onValueChange?: (value: boolean) => void; // For switches
   
   /**
+   * Callback when the input gains focus
+   */
+  onFocus?: () => void;
+  
+  /**
+   * Callback when the input loses focus
+   */
+  onBlur?: () => void;
+  
+  /**
+   * Whether the input should automatically focus when mounted
+   */
+  autoFocus?: boolean;
+  
+  /**
    * Type of input
    */
   type?: 'text' | 'email' | 'password' | 'number' | 'multiline' | 'switch' | 'selection';
@@ -128,6 +143,9 @@ export default function Input({
   value,
   onChangeText,
   onValueChange,
+  onFocus,
+  onBlur,
+  autoFocus = false,
   type = 'text',
   required = false,
   disabled = false,
@@ -224,6 +242,9 @@ export default function Input({
               ]}
               value={value as string}
               onChangeText={onChangeText}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              autoFocus={autoFocus}
               placeholder={placeholder}
               placeholderTextColor={theme.colors.textLight}
               secureTextEntry={type === 'password' && !showPassword}

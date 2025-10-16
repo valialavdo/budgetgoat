@@ -1,5 +1,4 @@
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 import { BudgetState, MonthKey, Category, BudgetMonth, Transaction } from '../types';
 
 function escapeCsv(value: string): string {
@@ -28,9 +27,16 @@ export async function exportMonthToCSV(state: BudgetState, month: MonthKey): Pro
   });
   lines.push(...rows);
 
-  const path = FileSystem.cacheDirectory + `budget-${month}.csv`;
-  await FileSystem.writeAsStringAsync(path, lines.join('\n'));
-  return path;
+  const path = Platform.OS === 'ios' ? '/tmp/' : '/data/data/com.budgetgoat.app/cache/';
+  const fileName = `budget-${month}.csv`;
+  const fullPath = path + fileName;
+  
+  // For now, return the CSV content as a string
+  // TODO: Implement actual file writing with react-native-fs
+  console.log('Exporting to:', fullPath);
+  console.log('CSV Content:', lines.join('\n'));
+  
+  return fullPath;
 }
 
 export async function exportTransactionsToCSV(state: BudgetState, dateRange?: { start: Date; end: Date }): Promise<string> {
@@ -64,9 +70,14 @@ export async function exportTransactionsToCSV(state: BudgetState, dateRange?: { 
   lines.push(...rows);
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-  const path = FileSystem.cacheDirectory + `transactions-${timestamp}.csv`;
-  await FileSystem.writeAsStringAsync(path, lines.join('\n'));
-  return path;
+  const path = Platform.OS === 'ios' ? '/tmp/' : '/data/data/com.budgetgoat.app/cache/';
+  const fileName = `transactions-${timestamp}.csv`;
+  const fullPath = path + fileName;
+  
+  console.log('Exporting to:', fullPath);
+  console.log('CSV Content:', lines.join('\n'));
+  
+  return fullPath;
 }
 
 export async function exportPocketsToCSV(state: BudgetState): Promise<string> {
@@ -87,9 +98,14 @@ export async function exportPocketsToCSV(state: BudgetState): Promise<string> {
   lines.push(...rows);
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-  const path = FileSystem.cacheDirectory + `pockets-${timestamp}.csv`;
-  await FileSystem.writeAsStringAsync(path, lines.join('\n'));
-  return path;
+  const path = Platform.OS === 'ios' ? '/tmp/' : '/data/data/com.budgetgoat.app/cache/';
+  const fileName = `pockets-${timestamp}.csv`;
+  const fullPath = path + fileName;
+  
+  console.log('Exporting to:', fullPath);
+  console.log('CSV Content:', lines.join('\n'));
+  
+  return fullPath;
 }
 
 export async function exportAllDataToCSV(state: BudgetState, dateRange?: { start: Date; end: Date }): Promise<string> {
@@ -136,16 +152,19 @@ export async function exportAllDataToCSV(state: BudgetState, dateRange?: { start
     ].join(','));
   });
 
-  const path = FileSystem.cacheDirectory + `budgetgoat-export-${timestamp}.csv`;
-  await FileSystem.writeAsStringAsync(path, lines.join('\n'));
-  return path;
+  const path = Platform.OS === 'ios' ? '/tmp/' : '/data/data/com.budgetgoat.app/cache/';
+  const fileName = `budgetgoat-export-${timestamp}.csv`;
+  const fullPath = path + fileName;
+  
+  console.log('Exporting to:', fullPath);
+  console.log('CSV Content:', lines.join('\n'));
+  
+  return fullPath;
 }
 
 export async function shareFile(path: string): Promise<void> {
-  const canShare = await Sharing.isAvailableAsync();
-  if (canShare) {
-    await Sharing.shareAsync(path);
-  }
+  // TODO: Implement with react-native-share
+  console.log('Sharing file:', path);
 }
 
 

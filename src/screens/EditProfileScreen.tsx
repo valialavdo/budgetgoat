@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { BudgetContext } from '../context/BudgetContext';
+import { useBudget } from '../context/SafeBudgetContext';
 import { useNavigation } from '@react-navigation/native';
 import SecondaryHeader from '../components/SecondaryHeader';
 import ChangePasswordBottomSheet from '../components/ChangePasswordBottomSheet';
@@ -9,11 +9,11 @@ import Input from '../components/Input';
 import { ArrowLeft, Check, PencilSimple, Plus, User, CaretRight } from 'phosphor-react-native';
 import MicroInteractionWrapper from '../components/MicroInteractionWrapper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
+// import * as ImagePicker from 'expo-image-picker'; // Removed - not available in native RN
 
 export default function EditProfileScreen() {
   const theme = useTheme();
-  const { state } = useContext(BudgetContext);
+  const { userProfile } = useBudget();
   const navigation = useNavigation();
   const styles = getStyles(theme);
   const [scrollY] = useState(new Animated.Value(0));
@@ -104,53 +104,13 @@ export default function EditProfileScreen() {
   };
 
   const openCamera = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Camera permission is needed to take photos.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setProfileImage(result.assets[0].uri);
-        setHasChanges(true);
-      }
-    } catch (error) {
-      console.error('Error opening camera:', error);
-      Alert.alert('Error', 'Failed to open camera. Please try again.');
-    }
+    // Placeholder for camera functionality
+    Alert.alert('Camera', 'Camera functionality not available in this build. Please use photo library instead.');
   };
 
   const openImageLibrary = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Photo library permission is needed to select photos.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setProfileImage(result.assets[0].uri);
-        setHasChanges(true);
-      }
-    } catch (error) {
-      console.error('Error opening image library:', error);
-      Alert.alert('Error', 'Failed to open photo library. Please try again.');
-    }
+    // Placeholder for image library functionality
+    Alert.alert('Photo Library', 'Photo library functionality not available in this build. Please use a default avatar.');
   };
 
   return (
@@ -216,8 +176,6 @@ export default function EditProfileScreen() {
               value={profileData.email}
               onChangeText={(text) => handleFieldChange('email', text)}
               placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
             />
 
             <View style={styles.inputGroup}>
@@ -318,6 +276,12 @@ function getStyles(theme: any) {
     },
     inputGroup: {
       marginBottom: theme.spacing.md,
+    },
+    inputLabel: {
+      ...theme.typography.bodyMedium,
+      color: theme.colors.text,
+      fontWeight: '500',
+      marginBottom: theme.spacing.xs,
     },
     previewField: {
       backgroundColor: theme.colors.surface,

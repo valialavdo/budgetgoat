@@ -1,10 +1,11 @@
-// Firebase Configuration for Web SDK
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
 
-// Firebase configuration from google-services.json
+// Firebase configuration
+// Using real credentials from google-services.json
 const firebaseConfig = {
   apiKey: "AIzaSyDtkSFKvCRXNCimSdTBKSlnsT-35nok_ho",
   authDomain: "budgetgoat-e6fd2.firebaseapp.com",
@@ -12,123 +13,45 @@ const firebaseConfig = {
   storageBucket: "budgetgoat-e6fd2.firebasestorage.app",
   messagingSenderId: "616944058051",
   appId: "1:616944058051:android:74934880df425f77e82c76",
-  measurementId: "G-XXXXXXXXXX"
+  measurementId: "G-XXXXXXXXXX" // Optional for React Native
 };
 
-// Initialize Firebase (only if not already initialized)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
-const auth = getAuth(app);
-const firestore = getFirestore(app);
-// Note: Analytics requires additional setup for web SDK
-// const analytics = getAnalytics(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
-// Export Firebase services
-export { auth, firestore };
+// Initialize Analytics (disabled for React Native)
+let analytics: any = null;
+// Analytics is disabled for React Native to avoid web-specific code issues
+export { analytics };
 
-// Helper functions for common Firebase operations
-export const FirebaseHelpers = {
-  // Authentication helpers
-  signInWithEmail: async (email: string, password: string) => {
-    try {
-      const result = await auth().signInWithEmailAndPassword(email, password);
-      return { success: true, user: result.user };
-    } catch (error) {
-      console.error('Sign in error:', error);
-      return { success: false, error: error.message };
-    }
-  },
+// Connect to emulators in development
+// Disabled for now to prevent connection errors
+// if (__DEV__) {
+//   try {
+//     // Auth emulator
+//     if (!auth.emulatorConfig) {
+//       connectAuthEmulator(auth, 'http://localhost:9099');
+//     }
+//     
+//     // Firestore emulator
+//     if (!db._delegate._databaseId.projectId.includes('demo-')) {
+//       connectFirestoreEmulator(db, 'localhost', 8080);
+//     }
+//     
+//     // Storage emulator
+//     if (!storage._delegate._host.includes('localhost')) {
+//       connectStorageEmulator(storage, 'localhost', 9199);
+//     }
+//     
+//     console.log('🔥 Firebase emulators connected');
+//   } catch (error) {
+//     console.warn('Firebase emulators not available:', error);
+//   }
+// }
 
-  signUpWithEmail: async (email: string, password: string) => {
-    try {
-      const result = await auth().createUserWithEmailAndPassword(email, password);
-      return { success: true, user: result.user };
-    } catch (error) {
-      console.error('Sign up error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  signOut: async () => {
-    try {
-      await auth().signOut();
-      return { success: true };
-    } catch (error) {
-      console.error('Sign out error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Firestore helpers
-  addDocument: async (collection: string, data: any) => {
-    try {
-      const docRef = await firestore().collection(collection).add({
-        ...data,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
-      return { success: true, id: docRef.id };
-    } catch (error) {
-      console.error('Add document error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  updateDocument: async (collection: string, docId: string, data: any) => {
-    try {
-      await firestore().collection(collection).doc(docId).update({
-        ...data,
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
-      return { success: true };
-    } catch (error) {
-      console.error('Update document error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  deleteDocument: async (collection: string, docId: string) => {
-    try {
-      await firestore().collection(collection).doc(docId).delete();
-      return { success: true };
-    } catch (error) {
-      console.error('Delete document error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  getCollection: async (collection: string, userId?: string) => {
-    try {
-      let query = firestore().collection(collection);
-      
-      if (userId) {
-        query = query.where('userId', '==', userId);
-      }
-      
-      const snapshot = await query.orderBy('createdAt', 'desc').get();
-      const documents = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      
-      return { success: true, data: documents };
-    } catch (error) {
-      console.error('Get collection error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Analytics helpers
-  logEvent: async (eventName: string, parameters?: any) => {
-    try {
-      await analytics().logEvent(eventName, parameters);
-      return { success: true };
-    } catch (error) {
-      console.error('Analytics log event error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-};
-
-export default FirebaseHelpers;
+export default app;

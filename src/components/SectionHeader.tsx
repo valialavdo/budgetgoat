@@ -106,9 +106,9 @@ function getStyles(theme: any) {
       marginBottom: 16, // Gap between section title and content (design system rule)
     },
     title: {
-      ...theme.typography.h4,
+      fontSize: 17,
       color: theme.colors.text,
-      fontWeight: '600',
+      fontWeight: '500',
       flex: 1,
     },
     themeToggle: {

@@ -1,29 +1,16 @@
-import {
-  useFonts,
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_600SemiBold,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans';
-
+// System fonts for React Native CLI project
 export const Fonts = {
   dmSans: {
-    regular: 'DMSans_400Regular',
-    medium: 'DMSans_500Medium',
-    semiBold: 'DMSans_600SemiBold',
-    bold: 'DMSans_700Bold',
+    regular: 'System',
+    medium: 'System',
+    semiBold: 'System',
+    bold: 'System',
   },
 };
 
 export const useAppFonts = () => {
-  const [fontsLoaded] = useFonts({
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    DMSans_700Bold,
-  });
-
-  return fontsLoaded;
+  // Always return true since we're using system fonts
+  return true;
 };
 
 export default Fonts;

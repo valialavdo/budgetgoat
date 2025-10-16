@@ -9,8 +9,26 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useMicroInteractions } from '../context/MicroInteractionsContext';
-import { format } from 'date-fns';
+// import { format } from 'date-fns'; // Temporarily disabled due to Metro bundler issues
 import BaseBottomSheet from './BaseBottomSheet';
+
+// Simple date formatting function to replace date-fns
+function formatDate(date: Date, formatStr: string): string {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  if (formatStr === 'MMMM dd, yyyy') {
+    return `${month} ${day.toString().padStart(2, '0')}, ${year}`;
+  }
+  
+  return `${month} ${day}, ${year}`;
+}
 
 export interface DateInputProps {
   /**
@@ -125,7 +143,7 @@ export default function DateInput({
     setShowPicker(true);
   };
 
-  const formattedDate = format(value, 'MMMM dd, yyyy');
+  const formattedDate = formatDate(value, 'MMMM dd, yyyy');
   const styles = getStyles(theme, error, disabled);
 
   return (

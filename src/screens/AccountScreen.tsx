@@ -16,24 +16,49 @@ import {
   Info,
   Plus
 } from 'phosphor-react-native';
-import { BudgetContext } from '../context/BudgetContext';
+import { useBudget } from '../context/SafeBudgetContext';
+import { useNavigationHelper } from '../utils/navigation';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
+import { useAuth } from '../context/SafeFirebaseContext';
 import Header from '../components/Header';
 import SectionHeader from '../components/SectionHeader';
 import NavigationButton from '../components/NavigationButton';
 import MicroInteractionWrapper from '../components/MicroInteractionWrapper';
+import { PocketSummaryCards } from '../components/PocketSummaryCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type AccountScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AccountScreen() {
   const navigation = useNavigation<AccountScreenNavigationProp>();
-  const { state } = useContext(BudgetContext);
+  const navHelper = useNavigationHelper(navigation, 'AccountScreen');
   const theme = useTheme();
-  const { signOut } = useFirebase();
+  const { signOut } = useAuth();
+  const { pockets, transactions } = useBudget();
   const [scrollY] = useState(new Animated.Value(0));
   const styles = getStyles(theme);
+
+  // Calculate pocket summary data
+  const totalTargets = pockets.reduce((sum, pocket) => sum + (pocket.targetAmount || 0), 0);
+  const totalAssigned = pockets.reduce((sum, pocket) => sum + (pocket.currentBalance || 0), 0);
+  const totalSpent = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
+  const underfunded = totalTargets - totalAssigned;
+
+  const handleEditTargets = () => {
+    // Navigate to Pockets tab
+    console.log('Edit targets');
+  };
+
+  const handleAssignFunds = () => {
+    // Navigate to Pockets tab
+    console.log('Assign funds');
+  };
+
+  const handleReflectSpending = () => {
+    navHelper.goToTransactions();
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -47,17 +72,17 @@ export default function AccountScreen() {
   };
 
   // Navigation handlers for secondary screens
-  const handleAppearance = () => navigation.navigate('Appearance');
-  const handleCurrency = () => navigation.navigate('Currency');
-  const handleExportData = () => navigation.navigate('ExportData');
-  const handleEditProfile = () => navigation.navigate('EditProfile');
-  const handlePrivacyPolicy = () => navigation.navigate('PrivacyPolicy');
-  const handleAboutApp = () => navigation.navigate('AboutApp');
-  const handleRateUs = () => navigation.navigate('RateUs');
-  const handleAIInsights = () => navigation.navigate('AIInsights');
-  const handleTransactionsList = () => navigation.navigate('TransactionsList');
-  const handleProjectionDetails = () => navigation.navigate('ProjectionDetails');
-  const handleSendToEmail = () => navigation.navigate('SendToEmail');
+  const handleAppearance = () => navHelper.goToAppearance();
+  const handleCurrency = () => navHelper.goToCurrency();
+  const handleExportData = () => navHelper.goToExportData();
+  const handleEditProfile = () => navHelper.goToEditProfile();
+  const handlePrivacyPolicy = () => navHelper.goToPrivacyPolicy();
+  const handleAboutApp = () => navHelper.goToAboutApp();
+  const handleRateUs = () => navHelper.goToRateUs();
+  const handleAIInsights = () => navHelper.goToAIInsights();
+  const handleTransactionsList = () => navHelper.goToTransactions();
+  const handleProjectionDetails = () => navHelper.goToProjectionDetails();
+  const handleSendToEmail = () => navHelper.goToSendToEmail();
   const handleClearAllData = () => {
     Alert.alert(
       'Clear All Data',
@@ -97,7 +122,7 @@ export default function AccountScreen() {
           scrollEventThrottle={16}
         >
           {/* Profile Header - Enhanced Version */}
-          <View style={[styles.profileHeader, { backgroundColor: theme.colors.surface }]}>
+          <View style={[styles.profileHeader, { backgroundColor: '#FFFFFF' }]}>
             {/* Edit Icon */}
             <MicroInteractionWrapper 
               style={styles.editHeaderButton} 
@@ -150,6 +175,7 @@ export default function AccountScreen() {
             </View>
           </View>
 
+
           {/* Settings Title */}
           <SectionHeader title="Settings" showThemeToggle={false} />
 
@@ -159,44 +185,50 @@ export default function AccountScreen() {
               icon={Sun} 
               label="Appearance" 
               onPress={() => navigation.navigate('Appearance')}
+              showArrow={false}
             />
             <NavigationButton 
               icon={Coins} 
               label="Currency" 
               onPress={() => navigation.navigate('Currency')}
+              showArrow={false}
             />
             <NavigationButton 
               icon={Upload} 
               label="Export Data" 
               onPress={() => navigation.navigate('ExportData')}
+              showArrow={false}
             />
             <NavigationButton 
               icon={Envelope} 
               label="Send Data to Email" 
               onPress={() => navigation.navigate('SendToEmail')}
+              showArrow={false}
             />
 
             <NavigationButton 
               icon={Shield} 
               label="Privacy Policy" 
               onPress={() => navigation.navigate('PrivacyPolicy')}
+              showArrow={false}
             />
             
             {/* Clear All Data */}
-            <NavigationButton icon={Trash} label="Clear All Data" iconColor={theme.colors.alertRed} onPress={handleClearAllData} />
+            <NavigationButton icon={Trash} label="Clear All Data" iconColor={theme.colors.alertRed} onPress={handleClearAllData} showArrow={false} />
             
             {/* Sign Out */}
-            <NavigationButton icon={SignOut} label="Sign Out" iconColor={theme.colors.alertRed} showArrow={false} />
+            <NavigationButton icon={SignOut} label="Sign Out" iconColor={theme.colors.alertRed} onPress={handleSignOut} showArrow={false} />
           </View>
 
           {/* About Us Section */}
           <SectionHeader title="About Us" />
           <View style={[styles.sectionContent, { marginHorizontal: 20 }]}> 
-            <NavigationButton icon={Star} label="Rate Us" onPress={handleRateUs} />
+            <NavigationButton icon={Star} label="Rate Us" onPress={handleRateUs} showArrow={false} />
             <NavigationButton 
               icon={Info} 
               label="About BudgetGOAT" 
               onPress={() => navigation.navigate('AboutApp')}
+              showArrow={false}
             />
           </View>
         </Animated.ScrollView>
@@ -344,6 +376,18 @@ function getStyles(theme: any) {
     marginTop: 24,
     marginBottom: 48,
     paddingHorizontal: 0,
+  },
+  pocketSummaryContainer: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  pocketSummaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  pocketSummaryCard: {
+    flex: 1,
   },
   });
 }

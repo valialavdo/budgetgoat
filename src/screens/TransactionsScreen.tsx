@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity, Animated } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
-import { BudgetContext } from '../context/BudgetContext';
+import { useBudget } from '../context/SafeBudgetContext';
 // import { useTransactions, usePockets } from '../hooks/useFirebaseData'; // Temporarily disabled for APK build
 import { Plus, Link, LinkBreak } from 'phosphor-react-native';
+import { mockTransactions, mockPockets } from '../data/mockData';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import Header from '../components/Header';
 import SearchBarWithFilter from '../components/SearchBarWithFilter';
-import PocketsListItem from '../components/PocketsListItem';
+import TransactionHome from '../components/TransactionHome';
 import FiltersBottomSheet from '../components/FiltersBottomSheet';
 import NewTransactionBottomSheet from '../components/NewTransactionBottomSheet';
+import EnhancedTransactionBottomSheet from '../components/EnhancedTransactionBottomSheet';
 // import { FilterOptions } from '../components/FiltersModal'; // Deleted
 
 type FilterOptions = {
@@ -27,47 +29,8 @@ type RouteParams = {
 export default function TransactionsScreen() {
   const route = useRoute<RouteProp<{ Transactions: RouteParams }, 'Transactions'>>();
   const theme = useTheme();
-  const { state, addTransaction } = useContext(BudgetContext);
-  // Mock data for Expo Go compatibility
-  const firebaseTransactions = [
-    {
-      id: '1',
-      title: 'Coffee Shop',
-      amount: '4.50',
-      type: 'expense',
-      date: '2024-01-15',
-      linkedPocketId: '1',
-      isRecurring: false,
-    },
-    {
-      id: '2',
-      title: 'Salary',
-      amount: '3000',
-      type: 'income', 
-      date: '2024-01-14',
-      linkedPocketId: '1',
-      isRecurring: true,
-    }
-  ];
-  const firebasePockets = [
-    {
-      id: '1',
-      name: 'Emergency Fund',
-      type: 'standard',
-      currentBalance: 2500,
-      targetAmount: 0,
-      transactionCount: 5,
-    },
-    {
-      id: '2', 
-      name: 'Vacation',
-      type: 'goal',
-      currentBalance: 800,
-      targetAmount: 2000,
-      transactionCount: 3,
-    }
-  ];
-  const transactionsLoading = false;
+  const { transactions, createTransaction, transactionsLoading } = useBudget();
+  // Use shared mock data
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [scrollY] = useState(new Animated.Value(0));
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,33 +50,13 @@ export default function TransactionsScreen() {
     }
   }, [route.params?.initialFilters]);
 
-  // Convert real transactions from state to display format
-  const transactions = useMemo(() => {
-    return firebaseTransactions.map(tx => {
-      const linkedPocket = firebasePockets.find(pocket => pocket.id === tx.linkedPocketId);
-      
-      return {
-        id: tx.id,
-        title: tx.title,
-        subtitle: tx.description || 'Transaction',
-        amount: parseFloat(tx.amount) * (tx.type === 'income' ? 1 : -1),
-        type: tx.type,
-        category: linkedPocket?.name || 'Uncategorized',
-        date: tx.date,
-        isRecurring: tx.isRecurring || false,
-        pocketInfo: {
-          name: linkedPocket?.name,
-          isLinked: !!linkedPocket
-        }
-      };
-    });
-  }, [firebaseTransactions, firebasePockets]);
+  // Use mock transactions directly
+  const displayTransactions = mockTransactions;
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
-    let filtered = transactions.filter(transaction => {
-      const matchesSearch = transaction.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        transaction.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    let filtered = displayTransactions.filter(transaction => {
+      const matchesSearch = transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesSearch;
     });
@@ -138,7 +81,7 @@ export default function TransactionsScreen() {
     });
 
     return filtered;
-  }, [transactions, searchQuery, filters]);
+  }, [displayTransactions, searchQuery, filters]);
 
   const handleAddTransaction = () => {
     setShowAddTransactionSheet(true);
@@ -151,8 +94,26 @@ export default function TransactionsScreen() {
   };
 
   const handleTransactionPress = (transaction: any) => {
-    setSelectedTransaction(transaction);
+    console.log('Transaction pressed:', transaction);
+    // Map transaction data to match TransactionBottomSheet interface
+    const mappedTransaction = {
+      id: transaction.id,
+      title: transaction.description,
+      amount: transaction.amount,
+      type: transaction.type,
+      date: transaction.date.toISOString(),
+      isRecurring: transaction.tags?.includes('recurring') || false,
+      pocketInfo: {
+        isLinked: !!transaction.pocketId,
+        pocketName: transaction.pocketId ? mockPockets.find(p => p.id === transaction.pocketId)?.name : undefined
+      },
+      description: transaction.description,
+      category: transaction.category
+    };
+    console.log('Mapped transaction:', mappedTransaction);
+    setSelectedTransaction(mappedTransaction);
     setShowTransactionSheet(true);
+    console.log('Transaction sheet should be visible now');
   };
 
   const handleEditTransaction = (editedTransaction: any) => {
@@ -183,36 +144,18 @@ export default function TransactionsScreen() {
   };
 
   const handleSaveNewTransaction = (newTransaction: any) => {
-    // Convert the new transaction to the proper format and save it
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-    
-    addTransaction({
-      month: currentMonth,
-      pocketCategoryId: newTransaction.pocketId || state.categories[0]?.id || '',
-      type: newTransaction.type,
-      amount: newTransaction.type === 'income' ? Math.abs(Number(newTransaction.amount)) : -Math.abs(Number(newTransaction.amount)),
-      note: newTransaction.title,
-      recurrence: newTransaction.isRecurring ? {
-        isRecurring: true,
-        frequency: 'monthly',
-        duration: 12
-      } : undefined
-    });
-    
+    // In a real app, this would save the transaction to the database
+    console.log('Save new transaction:', newTransaction);
     Alert.alert('Success', 'Transaction added successfully!');
     setShowAddTransactionSheet(false);
   };
 
   const renderTransactionItem = ({ item, index }: { item: any; index: number }) => (
-    <PocketsListItem 
-      title={item.title}
-      date={item.date}
-      amount={item.amount}
-      type={item.type}
-      isRecurring={item.isRecurring}
+    <TransactionHome 
+      transaction={item}
+      pockets={mockPockets}
       onPress={() => handleTransactionPress(item)}
-      showDivider={index < transactions.length - 1}
-      pocketInfo={item.pocketInfo}
+      isLast={index === mockTransactions.length - 1}
     />
   );
 
@@ -286,7 +229,21 @@ export default function TransactionsScreen() {
         visible={showAddTransactionSheet}
         onClose={() => setShowAddTransactionSheet(false)}
         onSave={handleSaveNewTransaction}
-        pockets={firebasePockets}
+        pockets={mockPockets}
+      />
+
+      <EnhancedTransactionBottomSheet
+        visible={showTransactionSheet}
+        onClose={() => setShowTransactionSheet(false)}
+        transaction={selectedTransaction}
+        pockets={mockPockets}
+        onEdit={handleEditTransaction}
+        onDelete={handleDeleteTransaction}
+        onSave={async (transaction) => {
+          console.log('Saving transaction:', transaction);
+          // In a real app, this would save to the database
+          Alert.alert('Success', 'Transaction saved successfully');
+        }}
       />
     </View>
   );

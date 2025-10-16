@@ -1,14 +1,13 @@
+import { trackBottomSheetInteraction } from '../services/analytics';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Trash, Wallet, Target, Plus, Minus } from 'phosphor-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Trash, Wallet, Target, Plus, Minus, PencilSimple, Calendar, Tag, Folder } from 'phosphor-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useFirebase } from '../context/MockFirebaseContext';
+import { useBudget } from '../context/SafeBudgetContext';
 import { useTranslation } from '../i18n';
-import BaseBottomSheet from './BaseBottomSheet';
-import Input from './Input';
-import SegmentedControl from './SegmentedControl';
-import ActionRow from './ActionRow';
-import ActionButton from './ActionButton';
+import UnifiedBaseBottomSheet from './UnifiedBaseBottomSheet';
+import UnifiedInput from './UnifiedInput';
+import UnifiedButton from './UnifiedButton';
 
 interface Pocket {
   id: string;
@@ -18,6 +17,7 @@ interface Pocket {
   type: 'standard' | 'goal';
   targetAmount?: number;
   color: string;
+  category: string;
   transactionCount: number;
 }
 
@@ -56,7 +56,7 @@ export default function PocketBottomSheet({
 }: PocketBottomSheetProps) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const { updatePocket, deletePocket } = useFirebase();
+  const { updatePocket, deletePocket } = useBudget();
   const styles = getStyles(theme);
   const [editedPocket, setEditedPocket] = useState<Pocket | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -109,7 +109,21 @@ export default function PocketBottomSheet({
     }
   };
 
+  const handleEdit = () => {
+    // This function is called when the edit button is pressed
+    // In a real app, this would open an edit form or enable inline editing
+    console.log('Edit pocket:', editedPocket);
+    if (onEdit && editedPocket) {
+      onEdit(editedPocket);
+    }
+  };
+
   const handleSave = async () => {
+    trackBottomSheetInteraction('PocketBottomSheet', 'save', {
+      pocket_id: editedPocket?.id,
+      has_changes: hasChanges
+    });
+    
     if (editedPocket && hasChanges) {
       try {
         await updatePocket(editedPocket.id, editedPocket);
@@ -122,6 +136,11 @@ export default function PocketBottomSheet({
   };
 
   const handleCancel = () => {
+    trackBottomSheetInteraction('PocketBottomSheet', 'cancel', {
+      pocket_id: editedPocket?.id,
+      has_changes: hasChanges
+    });
+    
     if (hasChanges) {
       // Show confirmation dialog for unsaved changes
       // For now, just close
@@ -192,31 +211,33 @@ export default function PocketBottomSheet({
 
   return (
     <>
-      <BaseBottomSheet
+      <UnifiedBaseBottomSheet
         visible={visible}
         onClose={onClose}
         title={editedPocket?.name ? `${editedPocket.name}` : 'Pocket Details'}
-        headerRightIcon={<Trash size={24} color={theme.colors.alertRed} weight="light" />}
-        onHeaderRightPress={handleDelete}
-      actionButtons={[
-        {
-          title: 'Cancel',
-          onPress: handleCancel,
-          variant: 'secondary',
-        },
-        {
-          title: 'Save Changes',
-          onPress: handleSave,
-          variant: 'primary',
-        },
-      ]}
+        backgroundColor={theme.colors.background}
+        headerRightIcon={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity onPress={handleEdit} style={{ padding: 4 }}>
+              <PencilSimple size={24} color={theme.colors.text} weight="light" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete} style={{ padding: 4 }}>
+              <Trash size={24} color={theme.colors.alertRed} weight="light" />
+            </TouchableOpacity>
+          </View>
+        }
+        onHeaderRightPress={handleEdit}
       >
         {/* Content */}
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.previewContainer}>
             
             {/* Name */}
-            <Input
+            <UnifiedInput
               label="Name"
               value={editedPocket?.name || ''}
               onChangeText={(text) => handleFieldChange('name', text)}
@@ -225,7 +246,7 @@ export default function PocketBottomSheet({
             />
 
             {/* Description */}
-            <Input
+            <UnifiedInput
               label="Description"
               value={editedPocket?.description || ''}
               onChangeText={(text) => handleFieldChange('description', text)}
@@ -236,27 +257,40 @@ export default function PocketBottomSheet({
             {/* Type Selection */}
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>Type</Text>
-              <SegmentedControl
-                options={[
-                  {
-                    value: 'standard',
-                    label: 'Standard',
-                    icon: <Wallet />
-                  },
-                  {
-                    value: 'goal',
-                    label: 'Goal Oriented',
-                    icon: <Target />
-                  }
-                ]}
-                selectedValue={editedPocket?.type || 'standard'}
-                onValueChange={(value) => handleFieldChange('type', value)}
-                size="small"
-              />
+              <View style={styles.typeSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.typeOption,
+                    editedPocket?.type === 'standard' && styles.typeOptionActive
+                  ]}
+                  onPress={() => handleFieldChange('type', 'standard')}
+                >
+                  <Text style={[
+                    styles.typeOptionText,
+                    editedPocket?.type === 'standard' && styles.typeOptionTextActive
+                  ]}>
+                    Standard
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.typeOption,
+                    editedPocket?.type === 'goal' && styles.typeOptionActive
+                  ]}
+                  onPress={() => handleFieldChange('type', 'goal')}
+                >
+                  <Text style={[
+                    styles.typeOptionText,
+                    editedPocket?.type === 'goal' && styles.typeOptionTextActive
+                  ]}>
+                    Goal
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Current Balance */}
-            <Input
+            <UnifiedInput
               label="Current Balance"
               value={editedPocket?.currentBalance ? String(editedPocket.currentBalance) : ''}
               onChangeText={(text) => {
@@ -264,12 +298,12 @@ export default function PocketBottomSheet({
                 handleFieldChange('currentBalance', num);
               }}
               placeholder="0"
-              type="number"
+              keyboardType="numeric"
             />
 
             {/* Target Amount (only for goal type) */}
             {editedPocket?.type === 'goal' && (
-              <Input
+              <UnifiedInput
                 label="Target Amount"
                 value={editedPocket?.targetAmount ? String(editedPocket.targetAmount) : ''}
                 onChangeText={(text) => {
@@ -277,7 +311,7 @@ export default function PocketBottomSheet({
                   handleFieldChange('targetAmount', num);
                 }}
                 placeholder="0"
-                type="number"
+                keyboardType="numeric"
               />
             )}
 
@@ -285,13 +319,12 @@ export default function PocketBottomSheet({
             <View style={styles.transactionsSection}>
               <View style={styles.transactionsHeader}>
                 <Text style={styles.transactionsTitle}>Linked Transactions</Text>
-                <ActionButton
-                  title={t('common.add')}
+                <UnifiedButton
+                  title="Add Transaction"
                   onPress={handleAddTransaction}
                   variant="primary"
                   size="small"
                   icon={<Plus size={16} color={theme.colors.background} weight="light" />}
-                  accessibilityLabel={t('common.add')}
                 />
               </View>
               
@@ -333,12 +366,29 @@ export default function PocketBottomSheet({
             </View>
 
           </View>
-        </ScrollView>
-      </BaseBottomSheet>
-
-    </>
-  );
-}
+          </ScrollView>
+        </KeyboardAvoidingView>
+          
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            <UnifiedButton
+              title="Cancel"
+              onPress={handleCancel}
+              variant="secondary"
+              style={styles.cancelButton}
+            />
+            <UnifiedButton
+              title="Save Changes"
+              onPress={handleSave}
+              variant="primary"
+              disabled={!hasChanges}
+              style={styles.saveButton}
+            />
+          </View>
+        </UnifiedBaseBottomSheet>
+      </>
+    );
+  }
 
 function getStyles(theme: any) {
   return StyleSheet.create({
@@ -353,10 +403,10 @@ function getStyles(theme: any) {
       marginBottom: theme.spacing.lg, // 24px spacing to match Input components
     },
     fieldLabel: {
-      fontSize: 14,
+      ...theme.typography.bodyMedium,
       color: theme.colors.text,
-      fontWeight: '600',
-      marginBottom: 8, // 8px spacing between title and input
+      fontWeight: '500',
+      marginBottom: theme.spacing.xs, // 8px spacing between title and input
     },
     fieldValue: {
       backgroundColor: theme.colors.surface,
@@ -429,6 +479,30 @@ function getStyles(theme: any) {
     },
     disabledButtonText: {
       color: theme.colors.textMuted,
+    },
+    typeSelector: {
+      flexDirection: 'row',
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.radius.md,
+      padding: 4,
+    },
+    typeOption: {
+      flex: 1,
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.radius.sm,
+      alignItems: 'center',
+    },
+    typeOptionActive: {
+      backgroundColor: theme.colors.trustBlue,
+    },
+    typeOptionText: {
+      ...theme.typography.bodyMedium,
+      color: theme.colors.textMuted,
+      fontWeight: '500',
+    },
+    typeOptionTextActive: {
+      color: theme.colors.background,
     },
     transactionsSection: {
       marginTop: theme.spacing.lg,
