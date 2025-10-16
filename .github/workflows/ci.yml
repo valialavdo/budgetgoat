@@ -33,12 +33,22 @@ jobs:
     - name: Clean previous builds
       run: |
         cd android
-        ./gradlew clean
+        ./gradlew clean --stacktrace
+    
+    - name: Check Android configuration
+      run: |
+        cd android
+        ./gradlew tasks --all | grep -E "(assemble|build)" || echo "No build tasks found"
     
     - name: Build Android APK
       run: |
         cd android
-        ./gradlew assembleRelease --stacktrace
+        ./gradlew assembleRelease --stacktrace --info
+    
+    - name: List build outputs
+      run: |
+        find android/app/build/outputs -name "*.apk" -type f || echo "No APK files found"
+        ls -la android/app/build/outputs/ || echo "Build outputs directory not found"
     
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
